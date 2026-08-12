@@ -4,9 +4,7 @@ from typing import Optional, List, Tuple, Dict
 from sqlalchemy import select, update, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bot.database.models.economy import (
-    Wallet, DailyReward, Transaction, EconomySettings, Referral
-)
+from bot.utils.time import utc_now
 
 logger = logging.getLogger("discord_bot.economy_repository")
 
@@ -335,7 +333,7 @@ class EconomyRepository:
         for key, value in kwargs.items():
             if hasattr(es, key) and value is not None:
                 setattr(es, key, value)
-        es.updated_at = datetime.utcnow()
+        es.updated_at = utc_now()
         await self.session.flush()
         return es
 

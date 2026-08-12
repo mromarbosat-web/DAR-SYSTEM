@@ -2,16 +2,17 @@ from datetime import datetime
 from sqlalchemy import BigInteger, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from bot.database.connection import Base
+from bot.utils.time import utc_now
 
 class Guild(Base):
     __tablename__ = "guilds"
 
     guild_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
-    joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
     # Relationships
     settings: Mapped["GuildSettings"] = relationship("GuildSettings", back_populates="guild", uselist=False, cascade="all, delete-orphan")
@@ -30,7 +31,7 @@ class GuildSettings(Base):
     prefix: Mapped[str] = mapped_column(String(10), default="!")
     language: Mapped[str] = mapped_column(String(10), default="ar")
     timezone: Mapped[str] = mapped_column(String(50), default="UTC")
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
     guild: Mapped["Guild"] = relationship("Guild", back_populates="settings")

@@ -4,6 +4,7 @@ from typing import Optional
 from sqlalchemy import BigInteger, String, Text, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from bot.database.connection import Base
+from bot.utils.time import utc_now
 
 class VoiceSettings(Base):
     __tablename__ = "voice_settings"
@@ -12,8 +13,8 @@ class VoiceSettings(Base):
     voice_manager_role_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
     voice_log_channel_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
     
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
     guild: Mapped["Guild"] = relationship("Guild", back_populates="voice_settings")
 
@@ -28,4 +29,4 @@ class VoiceActionLog(Base):
     channel_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
     target_channel_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
     reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

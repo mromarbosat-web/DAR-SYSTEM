@@ -4,6 +4,7 @@ from typing import Optional
 from sqlalchemy import BigInteger, String, Text, Integer, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from bot.database.connection import Base
+from bot.utils.time import utc_now
 
 class PunishmentSettings(Base):
     __tablename__ = "punishment_settings"
@@ -13,8 +14,8 @@ class PunishmentSettings(Base):
     warn_5_action: Mapped[str] = mapped_column(String(50), default="kick")
     warn_7_action: Mapped[str] = mapped_column(String(50), default="ban")
     
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
     guild: Mapped["Guild"] = relationship("Guild", back_populates="punishment_settings")
 
@@ -28,4 +29,4 @@ class ModerationAction(Base):
     action_type: Mapped[str] = mapped_column(String(50), nullable=False) # warn, timeout, kick, ban, unban, softban, purge, lock, unlock
     reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     duration: Mapped[Optional[int]] = mapped_column(Integer, nullable=True) # duration in seconds
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

@@ -6,6 +6,7 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 from bot.database.models import WarningSettings, Warning, WarningEvidence
 from bot.database.repositories.guild_repository import GuildRepository
+from bot.utils.time import utc_now, ensure_utc
 
 class WarningRepository:
     def __init__(self, session: AsyncSession):
@@ -64,7 +65,7 @@ class WarningRepository:
             reason=reason,
             evidence_url=evidence_url,
             duration_seconds=duration_seconds,
-            expires_at=expires_at
+            expires_at=ensure_utc(expires_at)
         )
         self.session.add(warning)
         try:
@@ -185,21 +186,22 @@ class WarningRepository:
         history = json.loads(warning.edit_history) if warning.edit_history else []
         history.append({
             "edited_by": editor_id,
-            "edited_at": datetime.utcnow().isoformat(),
+            "edited_at": utc_now().isoformat(),
             "old_reason": warning.reason,
             "old_evidence": warning.evidence_url,
             "old_expires_at": warning.expires_at.isoformat() if warning.expires_at else None
         })
         warning.edit_history = json.dumps(history)
         warning.edited_by = editor_id
+        warning.updated_at = utc_now()
 
         if new_reason:
             warning.reason = new_reason
         if new_evidence:
             warning.evidence_url = new_evidence
             await self.add_warning_evidence(warning.warning_id, editor_id, new_evidence, "Updated via warning edit")
-        if new_expires_at:
-            warning.expires_at = new_expires_at
+        if new_expires_at is not None:
+            warning.expires_at = ensure_utc(new_expires_at)
 
         await self.session.commit()
         await self.session.refresh(warning)
@@ -220,7 +222,7 @@ class WarningRepository:
         warning.status = status
         warning.removed_by = remover_id
         warning.removal_reason = removal_reason
-        warning.updated_at = datetime.utcnow()
+        warning.updated_at = utc_now()
 
         await self.session.commit()
         await self.session.refresh(warning)
@@ -232,13 +234,13 @@ class WarningRepository:
             return None
 
         warning.status = "EXPIRED"
-        warning.updated_at = datetime.utcnow()
+        warning.updated_at = utc_now()
         await self.session.commit()
         await self.session.refresh(warning)
         return warning
 
     async def expire_outdated_warnings(self, guild_id: int, user_id: Optional[int] = None) -> int:
-        now = datetime.utcnow()
+        now = utc_now()
         filters = [
             Warning.guild_id == guild_id,
             Warning.status == "ACTIVE",

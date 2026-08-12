@@ -3,6 +3,7 @@ from typing import List
 from sqlalchemy import BigInteger, String, Boolean, Integer, DateTime, ForeignKey, ARRAY, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from bot.database.connection import Base
+from bot.utils.time import utc_now
 
 class AutoModSettings(Base):
     __tablename__ = "automod_settings"
@@ -24,7 +25,7 @@ class AutoModSettings(Base):
     
     action: Mapped[str] = mapped_column(String(50), default="delete_and_warn") # delete_and_warn, timeout, kick
     
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
     guild: Mapped["Guild"] = relationship("Guild", back_populates="automod_settings")

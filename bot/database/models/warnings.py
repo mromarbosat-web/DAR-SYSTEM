@@ -4,6 +4,7 @@ from typing import Optional, List
 from sqlalchemy import BigInteger, String, Text, Integer, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from bot.database.connection import Base
+from bot.utils.time import utc_now
 
 class WarningSettings(Base):
     __tablename__ = "warning_settings"
@@ -24,8 +25,8 @@ class WarningSettings(Base):
     demotion_action: Mapped[str] = mapped_column(String(50), default="remove_roles") # remove_roles, timeout, kick
     verbal_warning_threshold: Mapped[int] = mapped_column(Integer, default=3)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
     guild: Mapped["Guild"] = relationship("Guild", back_populates="warning_settings")
 
@@ -52,8 +53,8 @@ class Warning(Base):
     removed_by: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
     removal_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
     evidences: Mapped[List["WarningEvidence"]] = relationship("WarningEvidence", back_populates="warning", cascade="all, delete-orphan")
 
@@ -65,6 +66,6 @@ class WarningEvidence(Base):
     uploaded_by: Mapped[int] = mapped_column(BigInteger, nullable=False)
     content_url: Mapped[str] = mapped_column(Text, nullable=False)
     note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
     warning: Mapped["Warning"] = relationship("Warning", back_populates="evidences")

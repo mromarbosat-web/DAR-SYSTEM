@@ -3,6 +3,7 @@ from typing import Optional
 from sqlalchemy import BigInteger, String, Text, Integer, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 from bot.database.connection import Base
+from bot.utils.time import utc_now
 
 class WhitelistedUser(Base):
     __tablename__ = "whitelist_users"
@@ -13,7 +14,7 @@ class WhitelistedUser(Base):
     user_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     added_by: Mapped[int] = mapped_column(BigInteger, nullable=False)
     reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 class WhitelistedRole(Base):
     __tablename__ = "whitelist_roles"
@@ -24,7 +25,7 @@ class WhitelistedRole(Base):
     role_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     added_by: Mapped[int] = mapped_column(BigInteger, nullable=False)
     reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 class WhitelistedBot(Base):
     __tablename__ = "whitelist_bots"
@@ -35,4 +36,4 @@ class WhitelistedBot(Base):
     bot_id: Mapped[int] = mapped_column(BigInteger, nullable=False)
     added_by: Mapped[int] = mapped_column(BigInteger, nullable=False)
     reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

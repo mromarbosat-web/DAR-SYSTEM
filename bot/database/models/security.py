@@ -2,6 +2,7 @@ from datetime import datetime
 from sqlalchemy import BigInteger, String, Boolean, Integer, DateTime, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from bot.database.connection import Base
+from bot.utils.time import utc_now
 
 class SecuritySettings(Base):
     __tablename__ = "security_settings"
@@ -21,7 +22,7 @@ class SecuritySettings(Base):
     anti_nuke_time_window: Mapped[int] = mapped_column(Integer, default=10) # Seconds
     anti_nuke_action: Mapped[str] = mapped_column(String(50), default="remove_roles") # remove_roles, ban, timeout
     
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)
 
     guild: Mapped["Guild"] = relationship("Guild", back_populates="security_settings")
