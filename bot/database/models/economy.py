@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import BigInteger, String, Boolean, DateTime, Integer, Text, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from bot.database.connection import Base
@@ -9,8 +9,8 @@ class Wallet(Base):
     user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, unique=True, index=True)
     balance: Mapped[int] = mapped_column(BigInteger, default=0, nullable=False)
     bank_balance: Mapped[int] = mapped_column(BigInteger, default=0, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 class DailyReward(Base):
     __tablename__ = "daily_rewards"
@@ -20,8 +20,8 @@ class DailyReward(Base):
     next_daily_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     daily_streak: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     total_claimed: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 class Transaction(Base):
     __tablename__ = "transactions"
@@ -35,7 +35,7 @@ class Transaction(Base):
     balance_after: Mapped[int] = mapped_column(BigInteger, nullable=False)
     related_user_id: Mapped[int] = mapped_column(BigInteger, nullable=True)
     reason: Mapped[str] = mapped_column(String(255), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True)
 
 class EconomySettings(Base):
     __tablename__ = "economy_settings"
@@ -54,8 +54,8 @@ class EconomySettings(Base):
     message_rewards_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     voice_rewards_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     invite_rewards_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 class ShopProduct(Base):
     __tablename__ = "shop_products"
@@ -71,8 +71,8 @@ class ShopProduct(Base):
     role_id: Mapped[int] = mapped_column(BigInteger, nullable=True)
     data: Mapped[str] = mapped_column(Text, nullable=True)
     enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 class UserInventory(Base):
     __tablename__ = "user_inventory"
@@ -84,8 +84,8 @@ class UserInventory(Base):
     user_id: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
     product_id: Mapped[int] = mapped_column(Integer, ForeignKey("shop_products.product_id", ondelete="CASCADE"), nullable=False, index=True)
     quantity: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
-    purchased_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+    purchased_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 class Referral(Base):
     __tablename__ = "referrals"
@@ -94,7 +94,7 @@ class Referral(Base):
     guild_id: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
     inviter_id: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
     invited_user_id: Mapped[int] = mapped_column(BigInteger, nullable=False, unique=True, index=True)
-    joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    joined_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     reward_amount: Mapped[int] = mapped_column(BigInteger, default=0, nullable=False)
     rewarded: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))

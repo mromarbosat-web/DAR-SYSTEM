@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Tuple
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -61,7 +61,7 @@ class ShopRepository:
         for key, val in kwargs.items():
             if hasattr(product, key) and val is not None:
                 setattr(product, key, val)
-        product.updated_at = datetime.utcnow()
+        product.updated_at = datetime.now(timezone.utc)
         await self.session.flush()
         return product
 
@@ -119,7 +119,7 @@ class ShopRepository:
             # Deduct wallet
             b_before = wallet.balance
             wallet.balance -= product.price
-            wallet.updated_at = datetime.utcnow()
+            wallet.updated_at = datetime.now(timezone.utc)
 
             # Decrement stock if not unlimited (-1)
             if product.stock > 0:
@@ -135,7 +135,7 @@ class ShopRepository:
 
             if inv_item:
                 inv_item.quantity += 1
-                inv_item.updated_at = datetime.utcnow()
+                inv_item.updated_at = datetime.now(timezone.utc)
             else:
                 inv_item = UserInventory(user_id=user_id, product_id=product_id, quantity=1)
                 self.session.add(inv_item)

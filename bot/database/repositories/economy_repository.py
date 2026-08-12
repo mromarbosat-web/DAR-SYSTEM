@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Tuple, Dict
 from sqlalchemy import select, update, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +9,13 @@ from bot.database.models.economy import (
 )
 
 logger = logging.getLogger("discord_bot.economy_repository")
+
+def ensure_utc(dt: Optional[datetime]) -> Optional[datetime]:
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
 
 class EconomyRepository:
     def __init__(self, session: AsyncSession):
@@ -59,7 +66,7 @@ class EconomyRepository:
                 return False, balance_before, balance_before, None
 
             wallet.balance = new_balance
-            wallet.updated_at = datetime.utcnow()
+            wallet.updated_at = datetime.now(timezone.utc)
 
             tx = Transaction(
                 user_id=user_id,
@@ -107,8 +114,8 @@ class EconomyRepository:
 
             sender_wallet.balance -= amount
             receiver_wallet.balance += amount
-            sender_wallet.updated_at = datetime.utcnow()
-            receiver_wallet.updated_at = datetime.utcnow()
+            sender_wallet.updated_at = datetime.now(timezone.utc)
+            receiver_wallet.updated_at = datetime.now(timezone.utc)
 
             # Transaction for sender
             tx_sender = Transaction(
@@ -154,7 +161,7 @@ class EconomyRepository:
 
             wallet.balance -= amount
             wallet.bank_balance += amount
-            wallet.updated_at = datetime.utcnow()
+            wallet.updated_at = datetime.now(timezone.utc)
 
             tx = Transaction(
                 user_id=user_id,
@@ -187,7 +194,7 @@ class EconomyRepository:
 
             wallet.bank_balance -= amount
             wallet.balance += amount
-            wallet.updated_at = datetime.utcnow()
+            wallet.updated_at = datetime.now(timezone.utc)
 
             tx = Transaction(
                 user_id=user_id,
@@ -227,7 +234,7 @@ class EconomyRepository:
         streak_bonus: int = 50,
         guild_id: Optional[int] = None
     ) -> Tuple[bool, str, int, int]:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         async with self.session.begin_nested():
             stmt = select(DailyReward).where(DailyReward.user_id == user_id).with_for_update()
@@ -238,15 +245,18 @@ class EconomyRepository:
                 self.session.add(daily)
                 await self.session.flush()
 
-            if daily.next_daily_at and now < daily.next_daily_at:
-                diff = daily.next_daily_at - now
+            next_daily = ensure_utc(daily.next_daily_at)
+            last_daily = ensure_utc(daily.last_daily_at)
+
+            if next_daily and now < next_daily:
+                diff = next_daily - now
                 total_secs = int(diff.total_seconds())
                 hours, remainder = divmod(total_secs, 3600)
                 minutes, seconds = divmod(remainder, 60)
                 return False, f"لقد قمت بتسجيل الدخول (المكافأة اليومية) مسبقًا اليوم!\n⏳ يرجى الانتظار **{hours} ساعة، {minutes} دقيقة و {seconds} ثانية** للمطالبة بها مرة أخرى.", 0, daily.daily_streak
 
             # Streak calculation: if claimed within 48 hours, increase streak; otherwise reset
-            if daily.last_daily_at and (now - daily.last_daily_at) < timedelta(hours=48):
+            if last_daily and (now - last_daily) < timedelta(hours=48):
                 daily.daily_streak += 1
             else:
                 daily.daily_streak = 1

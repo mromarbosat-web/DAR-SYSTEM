@@ -1,6 +1,6 @@
 import random
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Tuple, Optional, List, Dict
 import discord
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -81,7 +81,7 @@ class EconomyService:
         if not es.message_rewards_enabled:
             return None
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         last_time = self._msg_cooldowns.get(user_id)
         if last_time and (now - last_time) < timedelta(seconds=es.message_cooldown_seconds):
             return None
