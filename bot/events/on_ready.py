@@ -41,12 +41,35 @@ def register_ready_event(bot: commands.Bot):
             except Exception as e:
                 logger.error(f"Error syncing application slash commands: {e}")
 
+            # Sync Guilds in Database
+            logger.info("Synchronizing guilds with database...")
+            async with AsyncSessionLocal() as session:
+                from bot.database.repositories.guild_repository import GuildRepository
+                repo = GuildRepository(session)
+                for guild in bot.guilds:
+                    try:
+                        await repo.get_or_create_guild(guild.id, guild.name)
+                    except Exception as e:
+                        logger.error(f"Error syncing guild {guild.id} ({guild.name}): {e}")
+
         # Set Activity Status
         activity = discord.Activity(
             type=discord.ActivityType.watching,
             name="Shielding Servers • /security"
         )
         await bot.change_presence(activity=activity, status=discord.Status.online)
+
+    @bot.event
+    async def on_guild_join(guild: discord.Guild):
+        logger.info(f"Bot joined a new guild: {guild.name} (ID: {guild.id})")
+        async with AsyncSessionLocal() as session:
+            from bot.database.repositories.guild_repository import GuildRepository
+            repo = GuildRepository(session)
+            await repo.get_or_create_guild(guild.id, guild.name)
+        
+        # Update Invite Tracker Cache for the new guild
+        if hasattr(bot, "invite_tracker"):
+            await bot.invite_tracker.update_cache(guild)
 
 async def voice_rewards_ticker(bot: commands.Bot):
     """

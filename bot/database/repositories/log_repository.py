@@ -34,7 +34,12 @@ class LogRepository:
             "role": "role_log_channel_id",
             "channel": "channel_log_channel_id",
             "server": "server_log_channel_id",
-            "security": "security_log_channel_id"
+            "security": "security_log_channel_id",
+            "voice": "voice_log_channel_id",
+            "invite": "invite_log_channel_id",
+            "economy": "economy_log_channel_id",
+            "verification": "verification_log_channel_id",
+            "automod": "automod_log_channel_id"
         }
         if log_type in field_map:
             setattr(logs, field_map[log_type], channel_id)
