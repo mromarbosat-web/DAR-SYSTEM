@@ -69,7 +69,12 @@ class SetupService:
             ("🎭 Role Logs", fmt_ch(logs.role_log_channel_id), True),
             ("📺 Channel Logs", fmt_ch(logs.channel_log_channel_id), True),
             ("🛡️ Security Logs", fmt_ch(logs.security_log_channel_id), True),
-            ("⚙️ Server Logs", fmt_ch(logs.server_log_channel_id), True)
+            ("⚙️ Server Logs", fmt_ch(logs.server_log_channel_id), True),
+            ("🔊 Voice Logs", fmt_ch(getattr(logs, 'voice_log_channel_id', None)), True),
+            ("🔗 Invite Logs", fmt_ch(getattr(logs, 'invite_log_channel_id', None)), True),
+            ("💰 Economy Logs", fmt_ch(getattr(logs, 'economy_log_channel_id', None)), True),
+            ("✅ Verification Logs", fmt_ch(getattr(logs, 'verification_log_channel_id', None)), True),
+            ("🤖 AutoMod Logs", fmt_ch(getattr(logs, 'automod_log_channel_id', None)), True)
         ]
 
         return EmbedBuilder.info(

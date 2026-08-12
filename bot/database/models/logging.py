@@ -15,7 +15,7 @@ class LogSettings(Base):
     role_log_channel_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
     channel_log_channel_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
     server_log_channel_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
-    security_log_channel_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
+    security_log_channel_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)    voice_log_channel_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)    invite_log_channel_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)    economy_log_channel_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)    verification_log_channel_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)    automod_log_channel_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
     
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now)

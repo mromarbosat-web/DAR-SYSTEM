@@ -247,7 +247,7 @@ class EconomyService:
                 ]
             )
             if admin_member.guild:
-                await self.log_service.log_event(admin_member.guild, "moderation", log_embed)
+                await self.log_service.log_event(admin_member.guild, "economy", log_embed)
 
             return True, f"تم تعديل رصيد {target_user.mention} بنجاح! الرصيد الجديد: `{b_after}` سراب."
 

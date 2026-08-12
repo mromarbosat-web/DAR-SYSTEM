@@ -10,6 +10,13 @@ from bot.events.on_ready import register_ready_event
 from bot.events.on_member_join import register_member_join_event
 from bot.events.on_member_remove import register_member_remove_event
 from bot.events.on_message import register_message_event
+from bot.events.on_message_events import register_message_logs_events
+from bot.events.on_voice_events import register_voice_logs_events
+from bot.events.on_role_events import register_role_logs_events
+from bot.events.on_channel_events import register_channel_logs_events
+from bot.events.on_server_events import register_server_logs_events
+from bot.events.on_member_events_ext import register_member_logs_ext_events
+
 from bot.events.on_audit_log import register_audit_log_event
 from bot.events.error_handler import register_error_handlers
 
@@ -19,10 +26,13 @@ intents.members = True          # Required for Anti-Raid, Verification, Logs
 intents.message_content = True  # Required for AutoMod & Anti-Spam
 intents.guilds = True           # Required for Server & Channel management
 intents.moderation = True       # Required for Audit Logs & Anti-Nuke
+intents.voice_states = True     # Required for Voice Logs
+intents.invites = True          # Required for Invite Tracking
 
 class SecurityBot(commands.Bot):
     def __init__(self):
         super().__init__(
+            max_messages=10000, # Large message cache for Message Delete Logs
             command_prefix=settings.DEFAULT_PREFIX,
             intents=intents,
             help_command=None
@@ -73,6 +83,13 @@ async def main():
     register_member_join_event(bot)
     register_member_remove_event(bot)
     register_message_event(bot)
+    register_message_logs_events(bot)
+    register_voice_logs_events(bot)
+    register_role_logs_events(bot)
+    register_channel_logs_events(bot)
+    register_server_logs_events(bot)
+    register_member_logs_ext_events(bot)
+
     register_audit_log_event(bot)
     register_error_handlers(bot)
 

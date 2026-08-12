@@ -77,7 +77,7 @@ class VerificationView(discord.ui.View):
                         ("الرتبة الممنوحة", verified_role.mention, True)
                     ]
                 )
-                await log_service.log_event(guild, "member", log_embed)
+                await log_service.log_event(guild, "verification", log_embed)
 
             except discord.Forbidden:
                 await interaction.followup.send("❌ خطأ: لا يملك البوت الصلاحيات الكافية لإعطاء الرتبة (تأكد من وضع رتبة البوت أعلى من رتبة التحقق).", ephemeral=True)

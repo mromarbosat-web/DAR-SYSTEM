@@ -5,6 +5,7 @@ from typing import Optional
 from bot.config.settings import settings
 from bot.database.connection import AsyncSessionLocal
 from bot.services.economy_service import EconomyService
+from bot.services.log_service import LogService
 from bot.services.shop_service import ShopService
 from bot.utils.embeds import EmbedBuilder
 
@@ -49,6 +50,14 @@ class EconomyCog(commands.Cog):
                 user_id=interaction.user.id,
                 guild_id=interaction.guild.id if interaction.guild else settings.MAIN_GUILD_ID
             )
+            if success:
+                log_svc = LogService(session)
+                embed_log = discord.Embed(title="💰 مكافأة يومية", color=discord.Color.green())
+                embed_log.add_field(name="العضو", value=f"{interaction.user.mention} (`{interaction.user.id}`)", inline=False)
+                embed_log.add_field(name="المبلغ", value=f"`{reward}`", inline=True)
+                embed_log.add_field(name="الـ Streak", value=f"`{streak}`", inline=True)
+                await log_svc.log_event(interaction.guild, "economy", embed_log)
+
 
             if success:
                 embed = EmbedBuilder.success(
@@ -77,6 +86,14 @@ class EconomyCog(commands.Cog):
                 amount=amount,
                 guild_id=interaction.guild.id if interaction.guild else None
             )
+            if success:
+                log_svc = LogService(session)
+                embed_log = discord.Embed(title="💸 تحويل رصيد", color=discord.Color.blue())
+                embed_log.add_field(name="المرسل", value=f"{interaction.user.mention}", inline=True)
+                embed_log.add_field(name="المستلم", value=f"{user.mention}", inline=True)
+                embed_log.add_field(name="المبلغ", value=f"`{amount}`", inline=False)
+                await log_svc.log_event(interaction.guild, "economy", embed_log)
+
 
             if success:
                 embed = EmbedBuilder.success(

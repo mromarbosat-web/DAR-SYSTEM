@@ -5,6 +5,7 @@ from typing import Optional
 from bot.config.settings import settings
 from bot.database.connection import AsyncSessionLocal
 from bot.services.shop_service import ShopService
+from bot.services.log_service import LogService
 from bot.utils.embeds import EmbedBuilder
 
 class ShopCog(commands.Cog):
@@ -56,6 +57,13 @@ class ShopCog(commands.Cog):
         async with AsyncSessionLocal() as session:
             shop_service = ShopService(session)
             success, msg = await shop_service.buy_product(interaction.guild, interaction.user, product_id)
+            if success:
+                log_svc = LogService(session)
+                embed_log = discord.Embed(title="🛒 شراء من المتجر", color=discord.Color.gold())
+                embed_log.add_field(name="العضو", value=f"{interaction.user.mention}", inline=True)
+                embed_log.add_field(name="رقم المنتج", value=f"`{product_id}`", inline=True)
+                await log_svc.log_event(interaction.guild, "economy", embed_log)
+
 
             if success:
                 embed = EmbedBuilder.success("تمت عملية الشراء", msg)

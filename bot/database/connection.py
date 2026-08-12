@@ -41,6 +41,17 @@ async def init_db():
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
+        try:
+            async with engine.begin() as conn:
+                from sqlalchemy import text
+                await conn.execute(text("ALTER TABLE log_settings ADD COLUMN IF NOT EXISTS voice_log_channel_id BIGINT;"))
+                await conn.execute(text("ALTER TABLE log_settings ADD COLUMN IF NOT EXISTS invite_log_channel_id BIGINT;"))
+                await conn.execute(text("ALTER TABLE log_settings ADD COLUMN IF NOT EXISTS economy_log_channel_id BIGINT;"))
+                await conn.execute(text("ALTER TABLE log_settings ADD COLUMN IF NOT EXISTS verification_log_channel_id BIGINT;"))
+                await conn.execute(text("ALTER TABLE log_settings ADD COLUMN IF NOT EXISTS automod_log_channel_id BIGINT;"))
+        except Exception as e:
+            logger.warning(f"Error patching db {e}")
+
         logger.info("Database tables initialized successfully via SQLAlchemy Base metadata.")
     except Exception as e:
         logger.error(f"Error initializing database schema: {e}", exc_info=True)
