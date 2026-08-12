@@ -72,7 +72,11 @@ class EconomyRepository:
                 reason=reason
             )
             self.session.add(tx)
-            await self.session.flush()
+            try:
+                await self.session.commit()
+            except Exception:
+                await self.session.rollback()
+                await self.session.flush()
             return True, balance_before, new_balance, tx
 
     async def transfer_balance_atomic(
@@ -129,7 +133,11 @@ class EconomyRepository:
                 reason=reason or f"Transfer from {from_user_id}"
             )
             self.session.add_all([tx_sender, tx_receiver])
-            await self.session.flush()
+            try:
+                await self.session.commit()
+            except Exception:
+                await self.session.rollback()
+                await self.session.flush()
             return True, "تمت عملية التحويل بنجاح!", sender_wallet.balance, receiver_wallet.balance
 
     async def deposit_bank_atomic(self, user_id: int, amount: int) -> Tuple[bool, str, int, int]:
@@ -158,7 +166,11 @@ class EconomyRepository:
                 reason="Deposit to Bank"
             )
             self.session.add(tx)
-            await self.session.flush()
+            try:
+                await self.session.commit()
+            except Exception:
+                await self.session.rollback()
+                await self.session.flush()
             return True, "تم إيداع المبلغ في البنك بنجاح!", wallet.balance, wallet.bank_balance
 
     async def withdraw_bank_atomic(self, user_id: int, amount: int) -> Tuple[bool, str, int, int]:
@@ -187,7 +199,11 @@ class EconomyRepository:
                 reason="Withdraw from Bank"
             )
             self.session.add(tx)
-            await self.session.flush()
+            try:
+                await self.session.commit()
+            except Exception:
+                await self.session.rollback()
+                await self.session.flush()
             return True, "تم سحب المبلغ من البنك للمحفظة بنجاح!", wallet.balance, wallet.bank_balance
 
     async def get_daily_info(self, user_id: int) -> DailyReward:
@@ -197,7 +213,11 @@ class EconomyRepository:
         if not daily:
             daily = DailyReward(user_id=user_id, daily_streak=0, total_claimed=0)
             self.session.add(daily)
-            await self.session.flush()
+            try:
+                await self.session.commit()
+            except Exception:
+                await self.session.rollback()
+                await self.session.flush()
         return daily
 
     async def claim_daily_atomic(
@@ -220,9 +240,10 @@ class EconomyRepository:
 
             if daily.next_daily_at and now < daily.next_daily_at:
                 diff = daily.next_daily_at - now
-                hours, remainder = divmod(int(diff.total_seconds()), 3600)
-                minutes, _ = divmod(remainder, 60)
-                return False, f"يمكنك المطالبة بالمكافأة اليومية بعد `{hours} ساعة و {minutes} دقيقة`.", 0, daily.daily_streak
+                total_secs = int(diff.total_seconds())
+                hours, remainder = divmod(total_secs, 3600)
+                minutes, seconds = divmod(remainder, 60)
+                return False, f"لقد قمت بتسجيل الدخول (المكافأة اليومية) مسبقًا اليوم!\n⏳ يرجى الانتظار **{hours} ساعة، {minutes} دقيقة و {seconds} ثانية** للمطالبة بها مرة أخرى.", 0, daily.daily_streak
 
             # Streak calculation: if claimed within 48 hours, increase streak; otherwise reset
             if daily.last_daily_at and (now - daily.last_daily_at) < timedelta(hours=48):
@@ -252,7 +273,11 @@ class EconomyRepository:
                 reason=f"Daily Reward (Streak {daily.daily_streak})"
             )
             self.session.add(tx)
-            await self.session.flush()
+            try:
+                await self.session.commit()
+            except Exception:
+                await self.session.rollback()
+                await self.session.flush()
 
             return True, f"تم استلام المكافأة اليومية بنجاح! +{total_reward} سراب (Streak: {daily.daily_streak})", total_reward, daily.daily_streak
 
