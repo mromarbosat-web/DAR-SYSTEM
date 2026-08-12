@@ -7,11 +7,10 @@ from bot.services.role_service import RoleService
 from bot.utils.embeds import EmbedBuilder
 
 class ConfirmRoleDeleteView(discord.ui.View):
-    def __init__(self, inviter_id: int, role: discord.Role, role_service: RoleService):
+    def __init__(self, inviter_id: int, role: discord.Role):
         super().__init__(timeout=60)
         self.inviter_id = inviter_id
         self.role = role
-        self.role_service = role_service
         self.confirmed: Optional[bool] = None
 
     async def interaction_check(self, interaction: discord.Interaction) -> bool:
@@ -29,7 +28,10 @@ class ConfirmRoleDeleteView(discord.ui.View):
         self.confirmed = True
         self.stop()
 
-        success, msg = await self.role_service.delete_role(interaction.guild, interaction.user, self.role)
+        async with AsyncSessionLocal() as session:
+            role_service = RoleService(session)
+            success, msg = await role_service.delete_role(interaction.guild, interaction.user, self.role)
+
         if success:
             embed = EmbedBuilder.success("تم حذف الرتبة", msg)
         else:
@@ -159,7 +161,7 @@ class RoleManagementCog(commands.Cog):
                 title="تأكيد حذف الرتبة",
                 description=f"هل أنت متأكد تمامًا من رغبتك في حذف الرتبة {role.mention} (`{role.id}`)؟\n⚠️ **هذا الإجراء نهائي ولا يمكن التراجع عنه.**"
             )
-            view = ConfirmRoleDeleteView(interaction.user.id, role, role_service)
+            view = ConfirmRoleDeleteView(interaction.user.id, role)
             await interaction.followup.send(embed=embed, view=view)
 
 async def setup(bot: commands.Bot):
