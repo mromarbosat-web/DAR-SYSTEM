@@ -7,6 +7,8 @@ from bot.database.models.voice import VoiceSettings, VoiceActionLog
 from bot.database.models.verification import VerificationSettings
 from bot.database.models.logging import LogSettings
 from bot.database.models.whitelist import WhitelistedUser, WhitelistedRole, WhitelistedBot
+from bot.database.models.permissions import GuildAdminRole, GuildPermissionRole
+from bot.database.models.economy import Wallet, DailyReward, Transaction, EconomySettings, ShopProduct, UserInventory, Referral
 
 __all__ = [
     "Guild",
@@ -25,4 +27,14 @@ __all__ = [
     "WhitelistedUser",
     "WhitelistedRole",
     "WhitelistedBot",
+    "GuildAdminRole",
+    "GuildPermissionRole",
+    "Wallet",
+    "DailyReward",
+    "Transaction",
+    "EconomySettings",
+    "ShopProduct",
+    "UserInventory",
+    "Referral",
 ]
+

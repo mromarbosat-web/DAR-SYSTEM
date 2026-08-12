@@ -43,7 +43,12 @@ class SecurityBot(commands.Bot):
             "bot.cogs.logs",
             "bot.cogs.whitelist",
             "bot.cogs.setup",
-            "bot.cogs.utility"
+            "bot.cogs.utility",
+            "bot.cogs.permissions",
+            "bot.cogs.role_management",
+            "bot.cogs.economy",
+            "bot.cogs.shop",
+            "bot.cogs.help"
         ]
 
         for ext in initial_extensions:

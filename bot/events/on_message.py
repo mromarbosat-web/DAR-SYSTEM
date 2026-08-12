@@ -18,4 +18,9 @@ def register_message_event(bot: commands.Bot):
             if flagged:
                 return # Message deleted & handled by AutoMod
 
+            # Process economy message reward for Main Guild
+            from bot.services.economy_service import EconomyService
+            eco_service = EconomyService(session)
+            await eco_service.process_message_reward(message.guild.id, message.author.id)
+
         await bot.process_commands(message)

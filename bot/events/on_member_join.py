@@ -31,3 +31,30 @@ def register_member_join_event(bot: commands.Bot):
                 ]
             )
             await log_service.log_event(guild, "member", embed)
+
+            # 3. Invite Tracking & Referral Rewards for Main Guild
+            from bot.config.settings import settings
+            if guild.id == settings.MAIN_GUILD_ID and not member.bot:
+                try:
+                    if not hasattr(bot, "invites_cache"):
+                        bot.invites_cache = {}
+
+                    cached_invites = bot.invites_cache.get(guild.id, {})
+                    fresh_invites = await guild.invites()
+                    used_invite = None
+
+                    for inv in fresh_invites:
+                        old_uses = cached_invites.get(inv.code, inv.uses)
+                        if inv.uses > old_uses:
+                            used_invite = inv
+                            break
+
+                    # Update cache
+                    bot.invites_cache[guild.id] = {inv.code: inv.uses for inv in fresh_invites}
+
+                    if used_invite and used_invite.inviter:
+                        from bot.services.economy_service import EconomyService
+                        eco_service = EconomyService(session)
+                        await eco_service.process_invite_reward(guild, used_invite.inviter.id, member)
+                except Exception as e:
+                    logger.error(f"Error tracking invite for member join: {e}")
