@@ -5,6 +5,7 @@ from bot.database.connection import AsyncSessionLocal
 from bot.services.security_service import SecurityService
 from bot.services.log_service import LogService
 from bot.utils.embeds import EmbedBuilder
+from bot.utils.audit_logs import format_mention, format_id
 from bot.utils.time import utc_now
 
 logger = logging.getLogger("discord_bot.events.member_join")
@@ -18,66 +19,68 @@ def register_member_join_event(bot: commands.Bot):
             sec_service = SecurityService(session)
             await sec_service.handle_member_join(member)
 
-            # 3. Invite Tracking & Referral Rewards
-            from bot.config.settings import settings
-            used_invite = None
-            if not member.bot:
-                try:
-                    if not hasattr(bot, "invites_cache"):
-                        bot.invites_cache = {}
-                    cached_invites = bot.invites_cache.get(guild.id, {})
-                    
-                    try:
-                        fresh_invites = await guild.invites()
-                        for inv in fresh_invites:
-                            old_uses = cached_invites.get(inv.code, inv.uses)
-                            if inv.uses > old_uses:
-                                used_invite = inv
-                                break
-                        # Update cache
-                        bot.invites_cache[guild.id] = {inv.code: inv.uses for inv in fresh_invites}
-                    except discord.Forbidden:
-                        pass # No permission to fetch invites
-                        
-                    if used_invite and used_invite.inviter and guild.id == settings.MAIN_GUILD_ID:
-                        from bot.services.economy_service import EconomyService
-                        eco_service = EconomyService(session)
-                        await eco_service.process_invite_reward(guild, used_invite.inviter.id, member)
-                except Exception as e:
-                    logger.error(f"Error tracking invite for member join: {e}")
+            # 2. Invite Tracking
+            invite_info = None
+            if not member.bot and hasattr(bot, "invite_tracker"):
+                invite_info = await bot.invite_tracker.fetch_inviter(member)
+                
+                # referral rewards if main guild
+                from bot.config.settings import settings
+                if invite_info and invite_info != "vanity" and invite_info.inviter and guild.id == settings.MAIN_GUILD_ID:
+                    from bot.services.economy_service import EconomyService
+                    eco_service = EconomyService(session)
+                    await eco_service.process_invite_reward(guild, invite_info.inviter.id, member)
 
-            # 2. Member Join Log
+            # 3. Member Join Log
             log_service = LogService(session)
             
-            import time
             created_at = member.created_at
-            account_age = f"<t:{int(created_at.timestamp())}:R>"
+            account_age_str = f"<t:{int(created_at.timestamp())}:F> (<t:{int(created_at.timestamp())}:R>)"
+            join_time_str = f"<t:{int(utc_now().timestamp())}:F>"
             
-            embed = discord.Embed(title="👤 Member Joined", color=discord.Color.green(), timestamp=utc_now())
-            embed.set_author(name=f"{member} ({member.id})", icon_url=member.display_avatar.url if member.display_avatar else None)
-            embed.add_field(name="Account Created", value=account_age, inline=True)
-            embed.add_field(name="Member Count", value=f"`{guild.member_count}`", inline=True)
+            fields = [
+                ("👤 العضو", member.mention, True),
+                ("🏷️ اسم المستخدم", f"`{member.name}`", True),
+                ("📛 الاسم المستعار", f"`{member.display_name}`", True),
+                ("🆔 معرف المستخدم", format_id(member.id), True),
+                ("📅 إنشاء الحساب", account_age_str, False),
+                ("📥 وقت الانضمام", join_time_str, True),
+                ("👥 إجمالي الأعضاء", f"`{guild.member_count}`", True)
+            ]
             
-            if used_invite:
-                inviter_str = f"{used_invite.inviter.mention} (`{used_invite.inviter.id}`)" if used_invite.inviter else "Unknown"
-                embed.add_field(name="Invited By", value=inviter_str, inline=False)
-                embed.add_field(name="Invite Code", value=f"`{used_invite.code}`", inline=True)
-                embed.add_field(name="Uses", value=f"`{used_invite.uses - 1}` ➔ `{used_invite.uses}`", inline=True)
-            else:
-                # Could be a vanity URL, a bot, or a temporary invite that got deleted
-                if not member.bot and 'VANITY_URL' in guild.features:
-                    try:
-                        vanity = await guild.vanity_invite()
-                        if vanity:
-                            cached_uses = bot.invites_cache.get(guild.id, {}).get(vanity.code, vanity.uses)
-                            if vanity.uses > cached_uses:
-                                embed.add_field(name="Invite Source", value="`Vanity URL`", inline=False)
-                                bot.invites_cache[guild.id][vanity.code] = vanity.uses
-                    except discord.Forbidden:
-                        pass
-                        
+            invite_fields = []
+            if invite_info:
+                if invite_info == "vanity":
+                    fields.append(("🔗 مصدر الدعوة", "`Vanity URL (رابط مخصص)`", False))
+                    invite_fields.append(("🔗 مصدر الدعوة", "`Vanity URL (رابط مخصص)`", False))
+                else:
+                    inviter_str = f"{invite_info.inviter.mention} (`{invite_info.inviter.id}`)" if invite_info.inviter else "غير متاح"
+                    fields.append(("📩 دعا بواسطة", inviter_str, False))
+                    fields.append(("🎫 كود الدعوة", f"`{invite_info.code}`", True))
+                    fields.append(("📈 الاستخدامات", f"`{invite_info.uses}`", True))
+                    
+                    invite_fields.extend([
+                        ("👤 العضو المنضم", member.mention, True),
+                        ("🆔 المعرف", format_id(member.id), True),
+                        ("📩 الداعي", inviter_str, False),
+                        ("🎫 الكود", f"`{invite_info.code}`", True),
+                        ("📈 الاستخدامات", f"`{invite_info.uses}`", True)
+                    ])
+
+            embed = EmbedBuilder.log(
+                title="🟢 انضمام عضو جديد",
+                color=discord.Color.green(),
+                fields=fields,
+                author=member
+            )
             await log_service.log_event(guild, "member", embed)
             
-            if used_invite:
-                await log_service.log_event(guild, "invite", embed) # Optional: Also send to invite logs
+            if invite_fields:
+                inv_embed = EmbedBuilder.log(
+                    title="🔗 تتبع دعوة جديدة",
+                    color=discord.Color.blue(),
+                    fields=invite_fields,
+                    author=member
+                )
+                await log_service.log_event(guild, "invite", inv_embed)
 

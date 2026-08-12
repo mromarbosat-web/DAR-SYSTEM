@@ -35,11 +35,5 @@ class EconomyAliasesCog(commands.Cog):
             self.eco_cog = self.bot.get_cog("EconomyCog")
         await self.eco_cog.leaderboard_command.callback(self.eco_cog, interaction)
 
-    @app_commands.command(name="يومي", description="المطالبة بالمكافأة اليومية")
-    async def arabic_daily_command(self, interaction: discord.Interaction):
-        if not self.eco_cog:
-            self.eco_cog = self.bot.get_cog("EconomyCog")
-        await self.eco_cog.daily_command.callback(self.eco_cog, interaction)
-
 async def setup(bot: commands.Bot):
     await bot.add_cog(EconomyAliasesCog(bot))

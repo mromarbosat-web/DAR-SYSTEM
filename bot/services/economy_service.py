@@ -56,6 +56,21 @@ class EconomyService:
             guild_id=guild_id,
             reason=f"Transfer from {from_user.name} to {to_user.name}"
         )
+        if success and guild_id:
+            guild = from_user.guild if hasattr(from_user, "guild") else None
+            if guild:
+                fields = [
+                    ("📤 من", from_user.mention, True),
+                    ("📥 إلى", to_user.mention, True),
+                    ("💰 المبلغ", f"`{amount}` {settings.CURRENCY_NAME}", True)
+                ]
+                log_embed = EmbedBuilder.log(
+                    title="💸 عملية تحويل أموال",
+                    color=discord.Color.blue(),
+                    fields=fields,
+                    author=from_user
+                )
+                await self.log_service.log_event(guild, "economy", log_embed)
         return success, msg
 
     async def deposit(self, user_id: int, amount: int) -> Tuple[bool, str, int, int]:
@@ -172,16 +187,18 @@ class EconomyService:
             )
 
             # Log referral event
-            log_embed = EmbedBuilder.success(
-                title="مكافأة دعوة عضو جديد (Invite Reward)",
-                description=f"حصل الداعي <@{inviter_id}> على مكافأة قدرها `{reward_amt}` سراب لقاء دعوة {invited_member.mention}.",
-                fields=[
-                    ("الداعي (Inviter)", f"<@{inviter_id}> (`{inviter_id}`)", True),
-                    ("العضو الجديد", f"{invited_member} (`{invited_member.id}`)", True),
-                    ("المكافأة الممنوحة", f"`+{reward_amt}` {settings.CURRENCY_NAME}", True)
-                ]
+            fields = [
+                ("👮 الداعي (Inviter)", f"<@{inviter_id}> (`{inviter_id}`)", True),
+                ("👤 العضو الجديد", f"{invited_member.mention} (`{invited_member.id}`)", True),
+                ("🎁 المكافأة", f"`{reward_amt}` {settings.CURRENCY_NAME}", True)
+            ]
+            log_embed = EmbedBuilder.log(
+                title="🎁 مكافأة دعوة عضو جديد",
+                color=discord.Color.gold(),
+                fields=fields,
+                author=invited_member
             )
-            await self.log_service.log_event(guild, "moderation", log_embed)
+            await self.log_service.log_event(guild, "economy", log_embed)
             return True, f"تم إيداع `{reward_amt}` سراب لحساب الداعي بنجاح!"
 
         return False, "فشلت عملية إيداع مكافأة الدعوة."
@@ -195,7 +212,13 @@ class EconomyService:
         reason: str,
         guild_id: Optional[int] = None
     ) -> Tuple[bool, str]:
-        # Permission check
+        # Strict restriction: Only specific user ID can modify balances
+        # User provided ID: 1377224857292636200
+        ALLOWED_ADMIN_ID = 1377224857292636200
+        if admin_member.id != ALLOWED_ADMIN_ID:
+            return False, "عذراً، هذا الأمر متاح فقط لمالك البوت المحدد!"
+
+        # Permission check (as secondary fallback)
         if not await self.perm_service.has_manager_permission(admin_member, "ECONOMY_MANAGER"):
             return False, "ليس لديك صلاحية إدارة الاقتصاد (`ECONOMY_MANAGER`)!"
 
@@ -235,16 +258,19 @@ class EconomyService:
         )
 
         if success:
-            log_embed = EmbedBuilder.warning(
-                title=f"تعديل إداري في الاقتصاد ({action.upper()})",
-                description=f"قام الإداري {admin_member.mention} بتعديل رصيد {target_user.mention}.",
-                fields=[
-                    ("العضو", f"{target_user} (`{target_user.id}`)", True),
-                    ("الإداري المنفذ", f"{admin_member} (`{admin_member.id}`)", True),
-                    ("الرصيد السابق", f"`{b_before}` {settings.CURRENCY_NAME}", True),
-                    ("الرصيد الجديد", f"`{b_after}` {settings.CURRENCY_NAME}", True),
-                    ("السبب", reason, False)
-                ]
+            fields = [
+                ("👤 العضو", f"{target_user.mention} (`{target_user.id}`)", True),
+                ("👮 الإداري", f"{admin_member.mention} (`{admin_member.id}`)", True),
+                ("🛠️ الإجراء", f"`{action.upper()}`", True),
+                ("📉 قبل", f"`{b_before}` {settings.CURRENCY_NAME}", True),
+                ("📈 بعد", f"`{b_after}` {settings.CURRENCY_NAME}", True),
+                ("📝 السبب", f"`{reason}`", False)
+            ]
+            log_embed = EmbedBuilder.log(
+                title="⚙️ تعديل رصيد إداري",
+                color=discord.Color.dark_magenta(),
+                fields=fields,
+                author=admin_member
             )
             if admin_member.guild:
                 await self.log_service.log_event(admin_member.guild, "economy", log_embed)

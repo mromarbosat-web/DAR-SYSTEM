@@ -137,15 +137,18 @@ class AutoModService:
                     logger.error(f"Failed automod timeout: {e}")
 
             # Send Security/AutoMod Log
-            embed = EmbedBuilder.warning(
-                title="مخالفة AutoMod (AutoMod Violation Detected)",
-                description=f"تم اكتشاف مخالفة ومعالجتها تلقائيًا من قبل نظام AutoMod.",
-                fields=[
-                    ("العضو المخالف", f"{author.mention} (`{author.id}`)", True),
-                    ("القناة", message.channel.mention, True),
-                    ("السبب", violation_reason, False),
-                    ("محتوى الرسالة المحذوفة", message.content[:1000] if message.content else "*محتوى غير نصي*", False)
-                ]
+            fields = [
+                ("👤 العضو المخالف", author.mention, True),
+                ("🆔 المعرف", f"`{author.id}`", True),
+                ("📺 القناة", message.channel.mention, True),
+                ("📝 نوع المخالفة", f"`{violation_reason}`", False),
+                ("📄 محتوى الرسالة", f"```\n{message.content[:1000] if message.content else '*محتوى غير نصي*'}\n```", False)
+            ]
+            embed = EmbedBuilder.log(
+                title="🛡️ مخالفة نظام الحماية (AutoMod Violation)",
+                color=discord.Color.orange(),
+                fields=fields,
+                author=author
             )
             await self.log_service.log_event(guild, "security", embed)
 

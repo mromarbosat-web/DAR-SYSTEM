@@ -7,6 +7,7 @@ from bot.database.connection import AsyncSessionLocal
 from bot.services.moderation_service import ModerationService
 from bot.database.repositories.moderation_repository import ModerationRepository
 from bot.services.log_service import LogService
+from bot.utils.audit_logs import format_id, format_mention
 from bot.utils.permissions import check_hierarchy
 from bot.utils.embeds import EmbedBuilder
 
@@ -32,9 +33,31 @@ class ModerationCog(commands.Cog):
 
         async with AsyncSessionLocal() as session:
             repo = ModerationRepository(session)
+            # Fetch warning first to get user info for logging
+            from sqlalchemy import select
+            from bot.database.models import Warning as WarningModel
+            stmt = select(WarningModel).where(WarningModel.guild_id == interaction.guild.id, WarningModel.warning_id == warning_id.strip())
+            warning_obj = (await session.execute(stmt)).scalar_one_or_none()
+            
             removed = await repo.remove_warning(interaction.guild.id, warning_id.strip())
 
             if removed:
+                if warning_obj:
+                    fields = [
+                        ("👤 المستهدف", f"<@{warning_obj.user_id}>", True),
+                        ("🆔 المعرف", format_id(warning_obj.user_id), True),
+                        ("👮 المشرف", interaction.user.mention, True),
+                        ("📄 رقم التحذير", f"`{warning_id}`", True)
+                    ]
+                    log_embed = EmbedBuilder.log(
+                        title="🗑️ إزالة تحذير (Unwarn)",
+                        color=discord.Color.green(),
+                        fields=fields,
+                        author=interaction.user
+                    )
+                    log_svc = LogService(session)
+                    await log_svc.log_event(interaction.guild, "moderation", log_embed)
+                
                 embed = EmbedBuilder.success("تم إزالة التحذير", f"تم إزالة التحذير رقم `{warning_id}` بنجاح.")
             else:
                 embed = EmbedBuilder.error("لم يتم العثور على التحذير", f"لم يتم العثور على تحذير مطابق للـ ID `{warning_id}`.")
@@ -74,15 +97,18 @@ class ModerationCog(commands.Cog):
                     duration=seconds
                 )
 
-                log_embed = EmbedBuilder.warning(
-                    title="عزل مؤقت (Timeout Action)",
-                    description=f"تم تطبيق العزل المؤقت على العضو {user.mention}.",
-                    fields=[
-                        ("العضو", f"{user} (`{user.id}`)", True),
-                        ("المشرف", f"{interaction.user.mention}", True),
-                        ("المدة", duration, True),
-                        ("السبب", reason, False)
-                    ]
+                fields = [
+                    ("👤 المستهدف", user.mention, True),
+                    ("🆔 المعرف", format_id(user.id), True),
+                    ("👮 المشرف", interaction.user.mention, True),
+                    ("⏰ المدة", f"`{duration}`", True),
+                    ("📝 السبب", f"`{reason}`", False)
+                ]
+                log_embed = EmbedBuilder.log(
+                    title="⏳ عزل مؤقت (Timeout)",
+                    color=discord.Color.orange(),
+                    fields=fields,
+                    author=interaction.user
                 )
                 await log_svc.log_event(interaction.guild, "moderation", log_embed)
 
@@ -99,6 +125,23 @@ class ModerationCog(commands.Cog):
 
         try:
             await user.timeout(None, reason=reason)
+            
+            async with AsyncSessionLocal() as session:
+                log_svc = LogService(session)
+                fields = [
+                    ("👤 المستهدف", user.mention, True),
+                    ("🆔 المعرف", format_id(user.id), True),
+                    ("👮 المشرف", interaction.user.mention, True),
+                    ("📝 السبب", f"`{reason}`", False)
+                ]
+                log_embed = EmbedBuilder.log(
+                    title="🔊 فك العزل المؤقت (Untimeout)",
+                    color=discord.Color.green(),
+                    fields=fields,
+                    author=interaction.user
+                )
+                await log_svc.log_event(interaction.guild, "moderation", log_embed)
+
             await interaction.followup.send(embed=EmbedBuilder.success("تم فك العزل المؤقت", f"تم فك العزل المؤقت عن {user.mention} بنجاح."))
         except Exception as e:
             await interaction.followup.send(embed=EmbedBuilder.error("تعذر التنفيذ", f"حدث خطأ أثناء فك العزل: {e}"))
@@ -129,14 +172,17 @@ class ModerationCog(commands.Cog):
                     reason=reason
                 )
 
-                log_embed = EmbedBuilder.warning(
-                    title="طرد عضو (Kick Action)",
-                    description=f"تم طرد العضو {user} من السيرفر.",
-                    fields=[
-                        ("العضو", f"{user} (`{user.id}`)", True),
-                        ("المشرف", f"{interaction.user.mention}", True),
-                        ("السبب", reason, False)
-                    ]
+                fields = [
+                    ("👤 المستهدف", user.mention, True),
+                    ("🆔 المعرف", format_id(user.id), True),
+                    ("👮 المشرف", interaction.user.mention, True),
+                    ("📝 السبب", f"`{reason}`", False)
+                ]
+                log_embed = EmbedBuilder.log(
+                    title="👢 طرد عضو (Kick)",
+                    color=discord.Color.orange(),
+                    fields=fields,
+                    author=interaction.user
                 )
                 await log_svc.log_event(interaction.guild, "moderation", log_embed)
 
@@ -171,14 +217,17 @@ class ModerationCog(commands.Cog):
                     reason=reason
                 )
 
-                log_embed = EmbedBuilder.error(
-                    title="حظر عضو (Ban Action)",
-                    description=f"تم حظر العضو {user} من السيرفر.",
-                    fields=[
-                        ("العضو", f"{user} (`{user.id}`)", True),
-                        ("المشرف", f"{interaction.user.mention}", True),
-                        ("السبب", reason, False)
-                    ]
+                fields = [
+                    ("👤 المستهدف", user.mention, True),
+                    ("🆔 المعرف", format_id(user.id), True),
+                    ("👮 المشرف", interaction.user.mention, True),
+                    ("📝 السبب", f"`{reason}`", False)
+                ]
+                log_embed = EmbedBuilder.log(
+                    title="🔨 حظر عضو (Ban)",
+                    color=discord.Color.red(),
+                    fields=fields,
+                    author=interaction.user
                 )
                 await log_svc.log_event(interaction.guild, "moderation", log_embed)
 
@@ -197,6 +246,23 @@ class ModerationCog(commands.Cog):
             uid = int(user_id.strip())
             user = await self.bot.fetch_user(uid)
             await interaction.guild.unban(user, reason=reason)
+            
+            async with AsyncSessionLocal() as session:
+                log_svc = LogService(session)
+                fields = [
+                    ("👤 المستهدف", user.mention, True),
+                    ("🆔 المعرف", format_id(uid), True),
+                    ("👮 المشرف", interaction.user.mention, True),
+                    ("📝 السبب", f"`{reason}`", False)
+                ]
+                log_embed = EmbedBuilder.log(
+                    title="🔓 فك حظر (Unban)",
+                    color=discord.Color.green(),
+                    fields=fields,
+                    author=interaction.user
+                )
+                await log_svc.log_event(interaction.guild, "moderation", log_embed)
+
             await interaction.followup.send(embed=EmbedBuilder.success("تم فك الحظر", f"تم إلغاء حظر المستخدم **{user}** (`{uid}`) بنجاح."))
         except Exception as e:
             await interaction.followup.send(embed=EmbedBuilder.error("تعذر إلغاء الحظر", f"حدث خطأ أثناء محاولة إلغاء الحظر: {e}"))
@@ -215,6 +281,23 @@ class ModerationCog(commands.Cog):
         try:
             await user.ban(reason=f"Softban: {reason}", delete_message_days=1)
             await interaction.guild.unban(user, reason="Softban completion")
+            
+            async with AsyncSessionLocal() as session:
+                log_svc = LogService(session)
+                fields = [
+                    ("👤 المستهدف", user.mention, True),
+                    ("🆔 المعرف", format_id(user.id), True),
+                    ("👮 المشرف", interaction.user.mention, True),
+                    ("📝 السبب", f"`{reason}`", False)
+                ]
+                log_embed = EmbedBuilder.log(
+                    title="🌀 حظر مؤقت (Softban)",
+                    color=discord.Color.blue(),
+                    fields=fields,
+                    author=interaction.user
+                )
+                await log_svc.log_event(interaction.guild, "moderation", log_embed)
+
             await interaction.followup.send(embed=EmbedBuilder.success("تم تنفيذ Softban", f"تم طرد العضو {user.mention} وحذف رسائله الأخيرة بنجاح (يمكنه إعادة الدخول)."))
         except Exception as e:
             await interaction.followup.send(embed=EmbedBuilder.error("فشل التنفيذ", f"حدث خطأ: {e}"))
@@ -234,6 +317,25 @@ class ModerationCog(commands.Cog):
 
         try:
             deleted = await interaction.channel.purge(limit=amount, check=check)
+            
+            async with AsyncSessionLocal() as session:
+                log_svc = LogService(session)
+                fields = [
+                    ("📺 القناة", interaction.channel.mention, True),
+                    ("👮 المشرف", interaction.user.mention, True),
+                    ("📊 العدد المحذوف", f"`{len(deleted)}`", True)
+                ]
+                if user:
+                    fields.append(("👤 خاص بالعضو", user.mention, True))
+                    
+                log_embed = EmbedBuilder.log(
+                    title="🧹 مسح رسائل (Purge)",
+                    color=discord.Color.dark_grey(),
+                    fields=fields,
+                    author=interaction.user
+                )
+                await log_svc.log_event(interaction.guild, "moderation", log_embed)
+
             msg = f"تم مسح **{len(deleted)}** رسالة بنجاح."
             if user:
                 msg += f" (الخاصة بالعضو {user.mention})"
@@ -252,6 +354,22 @@ class ModerationCog(commands.Cog):
 
         try:
             await interaction.channel.edit(slowmode_delay=seconds)
+            
+            async with AsyncSessionLocal() as session:
+                log_svc = LogService(session)
+                fields = [
+                    ("📺 القناة", interaction.channel.mention, True),
+                    ("👮 المشرف", interaction.user.mention, True),
+                    ("⏰ المدة", f"`{seconds}` ثانية", True)
+                ]
+                log_embed = EmbedBuilder.log(
+                    title="⏳ تعديل الوضع البطيء (Slowmode)",
+                    color=discord.Color.dark_teal(),
+                    fields=fields,
+                    author=interaction.user
+                )
+                await log_svc.log_event(interaction.guild, "moderation", log_embed)
+
             if seconds == 0:
                 embed = EmbedBuilder.success("تم إلغاء Slowmode", "تم تعطيل الوضع البطيء في هذه القناة.")
             else:

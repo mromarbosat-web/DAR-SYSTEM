@@ -3,6 +3,8 @@ import discord
 from discord.ext import commands
 from bot.database.connection import AsyncSessionLocal
 from bot.services.log_service import LogService
+from bot.utils.audit_logs import get_audit_log_executor, format_mention, format_id
+from bot.utils.embeds import EmbedBuilder
 from bot.utils.time import utc_now
 
 logger = logging.getLogger("discord_bot.events.member_remove")
@@ -15,39 +17,72 @@ def register_member_remove_event(bot: commands.Bot):
             log_service = LogService(session)
             
             joined_at = member.joined_at
-            stay_duration = f"<t:{int(joined_at.timestamp())}:R>" if joined_at else "Unknown"
+            stay_duration = f"<t:{int(joined_at.timestamp())}:R>" if joined_at else "غير متاح"
+            leave_time = f"<t:{int(utc_now().timestamp())}:F>"
             
-            embed = discord.Embed(title="👤 Member Left", color=discord.Color.red(), timestamp=utc_now())
-            embed.set_author(name=f"{member} ({member.id})", icon_url=member.display_avatar.url if member.display_avatar else None)
-            embed.add_field(name="Joined", value=stay_duration, inline=True)
-            embed.add_field(name="Member Count", value=f"`{guild.member_count}`", inline=True)
+            fields = [
+                ("👤 العضو", member.mention, True),
+                ("🆔 معرف المستخدم", format_id(member.id), True),
+                ("📥 وقت الانضمام", stay_duration, True),
+                ("📤 وقت المغادرة", leave_time, True),
+                ("👥 إجمالي الأعضاء", f"`{guild.member_count}`", True)
+            ]
             
             # Check Audit Logs for Kick/Ban
+            action_type = "🔴 مغادرة عضو"
+            mod_fields = []
+            
             try:
-                import asyncio
-                await asyncio.sleep(1)
-                
                 # Check for kicks
-                kicked = False
                 async for entry in guild.audit_logs(action=discord.AuditLogAction.kick, limit=1):
                     if entry.target.id == member.id:
                         if (utc_now() - entry.created_at).total_seconds() < 10:
-                            embed.add_field(name="Kicked By", value=f"{entry.user.mention} (`{entry.user.id}`)", inline=False)
+                            action_type = "🚷 طرد عضو (Kick)"
+                            fields.append(("👮 المنفذ", entry.user.mention, True))
                             if entry.reason:
-                                embed.add_field(name="Reason", value=f"`{entry.reason}`", inline=False)
-                            kicked = True
+                                fields.append(("📝 السبب", f"`{entry.reason}`", False))
+                            
+                            mod_fields = [
+                                ("👤 المستهدف", member.mention, True),
+                                ("👮 المنفذ", entry.user.mention, True),
+                                ("🛠️ الإجراء", "`KICK`", True),
+                                ("📝 السبب", f"`{entry.reason or 'بدون سبب'}`", False)
+                            ]
                             break
                             
-                # Check for bans (on_member_remove triggers before on_member_ban sometimes, but audit logs might have it)
-                if not kicked:
+                # Check for bans
+                if action_type == "🔴 مغادرة عضو":
                     async for entry in guild.audit_logs(action=discord.AuditLogAction.ban, limit=1):
                         if entry.target.id == member.id:
                             if (utc_now() - entry.created_at).total_seconds() < 10:
-                                embed.add_field(name="Banned By", value=f"{entry.user.mention} (`{entry.user.id}`)", inline=False)
+                                action_type = "🚫 حظر عضو (Ban)"
+                                fields.append(("👮 المنفذ", entry.user.mention, True))
                                 if entry.reason:
-                                    embed.add_field(name="Reason", value=f"`{entry.reason}`", inline=False)
+                                    fields.append(("📝 السبب", f"`{entry.reason}`", False))
+                                
+                                mod_fields = [
+                                    ("👤 المستهدف", member.mention, True),
+                                    ("👮 المنفذ", entry.user.mention, True),
+                                    ("🛠️ الإجراء", "`BAN`", True),
+                                    ("📝 السبب", f"`{entry.reason or 'بدون سبب'}`", False)
+                                ]
                                 break
             except Exception:
                 pass
 
+            embed = EmbedBuilder.log(
+                title=action_type,
+                color=discord.Color.red() if action_type == "🔴 مغادرة عضو" else discord.Color.dark_red(),
+                fields=fields,
+                author=member
+            )
             await log_service.log_event(guild, "member", embed)
+            
+            if mod_fields:
+                mod_embed = EmbedBuilder.log(
+                    title="🔨 إجراء إداري",
+                    color=discord.Color.dark_red(),
+                    fields=mod_fields,
+                    author=member
+                )
+                await log_service.log_event(guild, "moderation", mod_embed)

@@ -74,14 +74,17 @@ class SecurityService:
                     logger.error(f"Failed to timeout member in anti-raid: {e}")
 
             # Send Security Log Embed
-            embed = EmbedBuilder.security_alert(
-                title="تم اكتشاف هجوم دخول جماعي (Anti-Raid Triggered)",
-                description=f"تم اكتشاف دخول **{current_count}** أعضاء خلال **{window}** ثانية.",
-                fields=[
-                    ("السيرفر", guild.name, True),
-                    ("العضو المحفز", f"{member.mention} ({member.id})", True),
-                    ("الإجراء المتخذ", action.upper(), True)
-                ]
+            fields = [
+                ("👮 المحفز", member.mention, True),
+                ("🆔 المعرف", f"`{member.id}`", True),
+                ("📊 عدد مرات الدخول", f"`{current_count}`", True),
+                ("🛡️ الإجراء المتخذ", f"`{action.upper()}`", True)
+            ]
+            embed = EmbedBuilder.log(
+                title="🚨 تم اكتشاف هجوم دخول جماعي (Anti-Raid)",
+                color=discord.Color.dark_red(),
+                fields=fields,
+                author=member
             )
             await self.log_service.log_event(guild, "security", embed)
 
@@ -133,14 +136,18 @@ class SecurityService:
                         logger.error(f"Failed to ban in anti-nuke: {e}")
 
             # Send Alert to Owner & Security Log
-            embed = EmbedBuilder.security_alert(
-                title="تنبيه أنتي نوك خطير (Anti-Nuke Activated)",
-                description=f"المستخدم {entry.user.mention} قَام بتنفيذ نشاط إداري مشبوه مكثف (**{len(matching_actions)}** إجراءات من نوع `{action_type}`).",
-                fields=[
-                    ("المنفذ", f"{entry.user} ({entry.user.id})", True),
-                    ("النوع", action_type, True),
-                    ("الإجراء الوقائي", action, True)
-                ]
+            fields = [
+                ("👮 المنفذ", entry.user.mention, True),
+                ("🆔 المعرف", f"`{entry.user.id}`", True),
+                ("🛠️ نوع النشاط", f"`{action_type}`", True),
+                ("📊 التكرار", f"`{len(matching_actions)}`", True),
+                ("🛡️ الإجراء الوقائي", f"`{action}`", True)
+            ]
+            embed = EmbedBuilder.log(
+                title="🛡️ تنبيه أنتي نوك (Anti-Nuke Activated)",
+                color=discord.Color.red(),
+                fields=fields,
+                author=entry.user
             )
             await self.log_service.log_event(guild, "security", embed)
 

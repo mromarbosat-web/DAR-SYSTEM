@@ -422,10 +422,6 @@ class EconomyCog(commands.Cog):
     async def arabic_top_command(self, interaction: discord.Interaction):
         await self.leaderboard_command.callback(self, interaction)
 
-    @app_commands.command(name="يومي", description="المطالبة بالمكافأة اليومية")
-    async def arabic_daily_command(self, interaction: discord.Interaction):
-        await self.daily_command.callback(self, interaction)
-
 async def setup(bot: commands.Bot):
 
     await bot.add_cog(EconomyCog(bot))

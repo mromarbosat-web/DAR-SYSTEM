@@ -3,8 +3,7 @@ from discord.ext import commands
 from bot.database.connection import AsyncSessionLocal
 from bot.services.log_service import LogService
 from bot.utils.embeds import EmbedBuilder
-from bot.utils.logger import logger
-from bot.utils.time import utc_now
+from bot.utils.audit_logs import get_audit_log_executor, format_mention, format_id
 
 def register_message_logs_events(bot: commands.Bot):
     
@@ -16,40 +15,36 @@ def register_message_logs_events(bot: commands.Bot):
         async with AsyncSessionLocal() as session:
             log_service = LogService(session)
             
-            # Create Embed
-            embed = discord.Embed(
-                title="🗑️ Message Deleted",
-                color=discord.Color.red(),
-                timestamp=utc_now()
-            )
-            embed.set_author(name=f"{message.author} ({message.author.id})", icon_url=message.author.display_avatar.url if message.author.display_avatar else None)
-            embed.add_field(name="Channel", value=f"{message.channel.mention} (`{message.channel.id}`)", inline=False)
+            fields = [
+                ("👤 صاحب الرسالة", message.author.mention, True),
+                ("🆔 معرف المستخدم", format_id(message.author.id), True),
+                ("📺 القناة", message.channel.mention, True),
+                ("🆔 معرف القناة", format_id(message.channel.id), True)
+            ]
             
             if message.content:
-                # Truncate content if too long
                 content = message.content[:1020] + "..." if len(message.content) > 1024 else message.content
-                embed.add_field(name="Content", value=content, inline=False)
+                fields.append(("📄 محتوى الرسالة", f"```\n{content}\n```", False))
                 
             if message.attachments:
                 attachments = "\n".join([f"[{a.filename}]({a.url})" for a in message.attachments])
-                embed.add_field(name="Attachments", value=attachments[:1024], inline=False)
-                
-            embed.set_footer(text=f"Message ID: {message.id}")
+                fields.append(("📎 المرفقات", attachments[:1024], False))
             
+            sent_at = f"<t:{int(message.created_at.timestamp())}:F>"
+            fields.append(("⏰ وقت الإرسال", sent_at, True))
+
             # Fetch audit logs to see if someone else deleted it
-            try:
-                # Small delay to ensure audit log is created
-                import asyncio
-                await asyncio.sleep(1)
-                async for entry in message.guild.audit_logs(action=discord.AuditLogAction.message_delete, limit=1):
-                    if entry.target.id == message.author.id and entry.extra.channel.id == message.channel.id:
-                        # Ensure it's recent
-                        if (utc_now() - entry.created_at).total_seconds() < 10:
-                            embed.add_field(name="Deleted By", value=f"{entry.user.mention} (`{entry.user.id}`)", inline=False)
-                        break
-            except Exception as e:
-                logger.error(f"Error fetching audit logs for message delete: {e}")
-                
+            executor = await get_audit_log_executor(message.guild, discord.AuditLogAction.message_delete, message.author.id)
+            if executor:
+                fields.append(("👮 حذف بواسطة", f"{executor.mention} ({executor.id})", False))
+
+            embed = EmbedBuilder.log(
+                title="🗑️ تم حذف رسالة",
+                color=discord.Color.red(),
+                fields=fields,
+                author=message.author,
+                footer=f"Message ID: {message.id}"
+            )
             await log_service.log_event(message.guild, "message", embed)
 
     @bot.event
@@ -65,54 +60,50 @@ def register_message_logs_events(bot: commands.Bot):
             log_service = LogService(session)
             channel = guild.get_channel(payload.channel_id)
             
-            embed = discord.Embed(
-                title="🗑️ Bulk Message Delete",
-                color=discord.Color.red(),
-                timestamp=utc_now()
-            )
-            if channel:
-                embed.add_field(name="Channel", value=f"{channel.mention} (`{channel.id}`)", inline=False)
-            embed.add_field(name="Count", value=f"`{len(payload.message_ids)}` messages deleted.", inline=False)
+            fields = [
+                ("📺 القناة", format_mention(channel), True),
+                ("🆔 معرف القناة", format_id(payload.channel_id), True),
+                ("🔢 عدد الرسائل", f"`{len(payload.message_ids)}`", True)
+            ]
             
-            # Try to fetch audit logs for bulk delete
-            try:
-                import asyncio
-                await asyncio.sleep(1)
-                async for entry in guild.audit_logs(action=discord.AuditLogAction.message_bulk_delete, limit=1):
-                    if entry.extra.count == len(payload.message_ids) and entry.target.id == payload.channel_id:
-                        if (utc_now() - entry.created_at).total_seconds() < 10:
-                            embed.add_field(name="Deleted By", value=f"{entry.user.mention} (`{entry.user.id}`)", inline=False)
-                        break
-            except Exception:
-                pass
-                
+            executor = await get_audit_log_executor(guild, discord.AuditLogAction.message_bulk_delete, payload.channel_id)
+            if executor:
+                fields.append(("👮 المنفذ (Purge)", f"{executor.mention} ({executor.id})", False))
+
+            embed = EmbedBuilder.log(
+                title="🧹 حذف رسائل متعددة (Bulk Delete)",
+                color=discord.Color.dark_red(),
+                fields=fields
+            )
             await log_service.log_event(guild, "message", embed)
 
     @bot.event
     async def on_message_edit(before: discord.Message, after: discord.Message):
         if before.author.bot or before.guild is None:
             return
-        if before.content == after.content: # Could be pin/unpin or embed generation
+        if before.content == after.content: 
             return
             
         async with AsyncSessionLocal() as session:
             log_service = LogService(session)
             
-            embed = discord.Embed(
-                title="✏️ Message Edited",
+            b_content = before.content[:1020] + "..." if len(before.content) > 1024 else (before.content or "لا يوجد محتوى نصي")
+            a_content = after.content[:1020] + "..." if len(after.content) > 1024 else (after.content or "لا يوجد محتوى نصي")
+            
+            fields = [
+                ("👤 صاحب الرسالة", before.author.mention, True),
+                ("📺 القناة", before.channel.mention, True),
+                ("🆔 معرف الرسالة", format_id(after.id), True),
+                ("📝 المحتوى القديم", f"```\n{b_content}\n```", False),
+                ("📝 المحتوى الجديد", f"```\n{a_content}\n```", False),
+                ("🔗 رابط الرسالة", f"[انتقال للرسالة]({after.jump_url})", False)
+            ]
+            
+            embed = EmbedBuilder.log(
+                title="✏️ تم تعديل رسالة",
                 color=discord.Color.gold(),
-                timestamp=utc_now()
+                fields=fields,
+                author=before.author
             )
-            embed.set_author(name=f"{before.author} ({before.author.id})", icon_url=before.author.display_avatar.url if before.author.display_avatar else None)
-            embed.add_field(name="Channel", value=f"{before.channel.mention} (`{before.channel.id}`)", inline=False)
-            
-            b_content = before.content[:1020] + "..." if len(before.content) > 1024 else (before.content or "None")
-            a_content = after.content[:1020] + "..." if len(after.content) > 1024 else (after.content or "None")
-            
-            embed.add_field(name="Before", value=b_content, inline=False)
-            embed.add_field(name="After", value=a_content, inline=False)
-            embed.add_field(name="Message Link", value=f"[Jump to Message]({after.jump_url})", inline=False)
-            embed.set_footer(text=f"Message ID: {after.id}")
-            
             await log_service.log_event(before.guild, "message", embed)
 

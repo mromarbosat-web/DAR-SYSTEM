@@ -23,19 +23,11 @@ def register_ready_event(bot: commands.Bot):
             except Exception as e:
                 logger.error(f"Error registering Verification persistent view: {e}")
 
-            # Cache invites for Main Guild
-            from bot.config.settings import settings
-            if not hasattr(bot, "invites_cache"):
-                bot.invites_cache = {}
-
-            main_guild = bot.get_guild(settings.MAIN_GUILD_ID)
-            if main_guild:
-                try:
-                    invites = await main_guild.invites()
-                    bot.invites_cache[main_guild.id] = {inv.code: inv.uses for inv in invites}
-                    logger.info(f"Initialized invite cache for Main Guild ({main_guild.id}): {len(invites)} invites cached.")
-                except Exception as e:
-                    logger.error(f"Failed to initialize invite cache: {e}")
+            # Update Invite Tracker Cache for all guilds
+            if hasattr(bot, "invite_tracker"):
+                for guild in bot.guilds:
+                    await bot.invite_tracker.update_cache(guild)
+                logger.info(f"Initialized invite tracker cache for {len(bot.guilds)} guilds.")
 
             # Start Voice Rewards Ticker Loop Task
             if not getattr(bot, "_voice_rewards_task_started", False):

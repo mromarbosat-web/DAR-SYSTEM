@@ -2,7 +2,8 @@ import discord
 from discord.ext import commands
 from bot.database.connection import AsyncSessionLocal
 from bot.services.log_service import LogService
-from bot.utils.time import utc_now
+from bot.utils.audit_logs import get_audit_log_executor, format_mention, format_id
+from bot.utils.embeds import EmbedBuilder
 
 def register_voice_logs_events(bot: commands.Bot):
     @bot.event
@@ -15,59 +16,122 @@ def register_voice_logs_events(bot: commands.Bot):
             
             # Voice Join
             if before.channel is None and after.channel is not None:
-                embed = discord.Embed(title="🔊 Voice Join", color=discord.Color.green(), timestamp=utc_now())
-                embed.set_author(name=f"{member} ({member.id})", icon_url=member.display_avatar.url if member.display_avatar else None)
-                embed.add_field(name="Channel", value=f"{after.channel.mention} (`{after.channel.id}`)", inline=False)
+                fields = [
+                    ("👤 العضو", member.mention, True),
+                    ("🆔 المعرف", format_id(member.id), True),
+                    ("🔊 القناة", after.channel.mention, True)
+                ]
+                embed = EmbedBuilder.log(
+                    title="🎙️ دخول روم صوتي",
+                    color=discord.Color.green(),
+                    fields=fields,
+                    author=member
+                )
                 await log_service.log_event(member.guild, "voice", embed)
                 
             # Voice Leave
             elif before.channel is not None and after.channel is None:
-                embed = discord.Embed(title="🔇 Voice Leave", color=discord.Color.red(), timestamp=utc_now())
-                embed.set_author(name=f"{member} ({member.id})", icon_url=member.display_avatar.url if member.display_avatar else None)
-                embed.add_field(name="Channel", value=f"{before.channel.mention} (`{before.channel.id}`)", inline=False)
+                fields = [
+                    ("👤 العضو", member.mention, True),
+                    ("🆔 المعرف", format_id(member.id), True),
+                    ("🔇 القناة السابقة", before.channel.mention, True)
+                ]
+                embed = EmbedBuilder.log(
+                    title="🔴 خروج من روم صوتي",
+                    color=discord.Color.red(),
+                    fields=fields,
+                    author=member
+                )
                 await log_service.log_event(member.guild, "voice", embed)
                 
             # Voice Move
-            elif before.channel != after.channel:
-                embed = discord.Embed(title="🔄 Voice Move", color=discord.Color.blue(), timestamp=utc_now())
-                embed.set_author(name=f"{member} ({member.id})", icon_url=member.display_avatar.url if member.display_avatar else None)
-                embed.add_field(name="From", value=f"{before.channel.mention} (`{before.channel.id}`)", inline=True)
-                embed.add_field(name="To", value=f"{after.channel.mention} (`{after.channel.id}`)", inline=True)
+            elif before.channel is not None and after.channel is not None and before.channel != after.channel:
+                fields = [
+                    ("👤 العضو", member.mention, True),
+                    ("🆔 المعرف", format_id(member.id), True),
+                    ("📤 من", before.channel.mention, True),
+                    ("📥 إلى", after.channel.mention, True)
+                ]
+                embed = EmbedBuilder.log(
+                    title="🔀 انتقال بين الغرف الصوتية",
+                    color=discord.Color.blue(),
+                    fields=fields,
+                    author=member
+                )
                 await log_service.log_event(member.guild, "voice", embed)
                 
             # Mute/Unmute (Server)
             if before.mute != after.mute:
-                action = "Server Muted" if after.mute else "Server Unmuted"
-                embed = discord.Embed(title=f"🎤 {action}", color=discord.Color.orange(), timestamp=utc_now())
-                embed.set_author(name=f"{member} ({member.id})", icon_url=member.display_avatar.url if member.display_avatar else None)
+                title = "🔇 كتم صوت إداري (Server Mute)" if after.mute else "🔊 إلغاء كتم الصوت الإداري (Server Unmute)"
+                fields = [
+                    ("👤 العضو", member.mention, True),
+                    ("🆔 المعرف", format_id(member.id), True)
+                ]
                 if after.channel:
-                    embed.add_field(name="Channel", value=f"{after.channel.mention} (`{after.channel.id}`)", inline=False)
+                    fields.append(("🔊 القناة", after.channel.mention, True))
+                
+                # Fetch executor for server mute/unmute
+                executor = await get_audit_log_executor(member.guild, discord.AuditLogAction.member_update, member.id)
+                if executor:
+                    fields.append(("👮 المنفذ", executor.mention, False))
+
+                embed = EmbedBuilder.log(
+                    title=title,
+                    color=discord.Color.orange(),
+                    fields=fields,
+                    author=member
+                )
                 await log_service.log_event(member.guild, "voice", embed)
                 
             # Deafen/Undeafen (Server)
             if before.deaf != after.deaf:
-                action = "Server Deafened" if after.deaf else "Server Undeafened"
-                embed = discord.Embed(title=f"🎧 {action}", color=discord.Color.orange(), timestamp=utc_now())
-                embed.set_author(name=f"{member} ({member.id})", icon_url=member.display_avatar.url if member.display_avatar else None)
+                title = "🔕 كتم سماعة إداري (Server Deafen)" if after.deaf else "🔔 إلغاء كتم السماعة الإداري (Server Undeafen)"
+                fields = [
+                    ("👤 العضو", member.mention, True),
+                    ("🆔 المعرف", format_id(member.id), True)
+                ]
                 if after.channel:
-                    embed.add_field(name="Channel", value=f"{after.channel.mention} (`{after.channel.id}`)", inline=False)
+                    fields.append(("🔊 القناة", after.channel.mention, True))
+                
+                executor = await get_audit_log_executor(member.guild, discord.AuditLogAction.member_update, member.id)
+                if executor:
+                    fields.append(("👮 المنفذ", executor.mention, False))
+
+                embed = EmbedBuilder.log(
+                    title=title,
+                    color=discord.Color.orange(),
+                    fields=fields,
+                    author=member
+                )
                 await log_service.log_event(member.guild, "voice", embed)
 
-            # Self Mute/Unmute
-            if before.self_mute != after.self_mute:
-                action = "Self Muted" if after.self_mute else "Self Unmuted"
-                embed = discord.Embed(title=f"🎤 {action}", color=discord.Color.light_grey(), timestamp=utc_now())
-                embed.set_author(name=f"{member} ({member.id})", icon_url=member.display_avatar.url if member.display_avatar else None)
-                if after.channel:
-                    embed.add_field(name="Channel", value=f"{after.channel.mention} (`{after.channel.id}`)", inline=False)
+            # Camera start/stop
+            if before.self_video != after.self_video:
+                title = "📹 تشغيل الكاميرا" if after.self_video else "📽️ إغلاق الكاميرا"
+                fields = [
+                    ("👤 العضو", member.mention, True),
+                    ("🔊 القناة", format_mention(after.channel), True)
+                ]
+                embed = EmbedBuilder.log(
+                    title=title,
+                    color=discord.Color.purple(),
+                    fields=fields,
+                    author=member
+                )
                 await log_service.log_event(member.guild, "voice", embed)
                 
             # Stream start/stop
             if before.self_stream != after.self_stream:
-                action = "Started Streaming" if after.self_stream else "Stopped Streaming"
-                embed = discord.Embed(title=f"📺 {action}", color=discord.Color.purple(), timestamp=utc_now())
-                embed.set_author(name=f"{member} ({member.id})", icon_url=member.display_avatar.url if member.display_avatar else None)
-                if after.channel:
-                    embed.add_field(name="Channel", value=f"{after.channel.mention} (`{after.channel.id}`)", inline=False)
+                title = "📡 بدء بث مباشر (Streaming)" if after.self_stream else "🛑 إنهاء البث المباشر"
+                fields = [
+                    ("👤 العضو", member.mention, True),
+                    ("🔊 القناة", format_mention(after.channel), True)
+                ]
+                embed = EmbedBuilder.log(
+                    title=title,
+                    color=discord.Color.dark_purple(),
+                    fields=fields,
+                    author=member
+                )
                 await log_service.log_event(member.guild, "voice", embed)
 

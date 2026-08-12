@@ -4,6 +4,7 @@ import discord
 from sqlalchemy.ext.asyncio import AsyncSession
 from bot.database.repositories.moderation_repository import ModerationRepository
 from bot.services.log_service import LogService
+from bot.utils.audit_logs import format_id
 from bot.utils.permissions import check_hierarchy
 from bot.utils.embeds import EmbedBuilder
 
@@ -96,19 +97,24 @@ class ModerationService:
             pass # Ignore if DMs are closed
 
         # Log Moderation Event
-        log_embed = EmbedBuilder.warning(
-            title="تحذير عضو (Member Warned)",
-            description=f"تم توجيه تحذير رسمي للعضو {target.mention}.",
-            fields=[
-                ("العضو", f"{target} (`{target.id}`)", True),
-                ("المشرف المنفذ", f"{moderator} (`{moderator.id}`)", True),
-                ("معرف التحذير", f"`{warning.warning_id}`", True),
-                ("إجمالي التحذيرات", f"`{warn_count}`", True),
-                ("السبب", reason, False),
-                ("عقوبة الترقية التلقائية", ladder_note if ladder_note else "لا توجد", False)
-            ]
+        fields = [
+            ("👤 المستهدف", target.mention, True),
+            ("🆔 المعرف", format_id(target.id), True),
+            ("👮 المشرف", moderator.mention, True),
+            ("📄 رقم التحذير", f"`{warning.warning_id}`", True),
+            ("📊 إجمالي التحذيرات", f"`{warn_count}`", True),
+            ("📝 السبب", f"`{reason}`", False)
+        ]
+        if ladder_note:
+            fields.append(("🛡️ عقوبة إضافية", f"`{ladder_note.strip()}`", False))
+
+        embed = EmbedBuilder.log(
+            title="⚠️ توجيه تحذير (Warning)",
+            color=discord.Color.gold(),
+            fields=fields,
+            author=moderator
         )
-        await self.log_service.log_event(guild, "moderation", log_embed)
+        await self.log_service.log_event(guild, "moderation", embed)
 
         msg = f"تم تحذير العضو {target.mention} بنجاح. رقم التحذير: `{warning.warning_id}` (إجمالي التحذيرات: `{warn_count}`){ladder_note}"
         return True, msg, escalated_action

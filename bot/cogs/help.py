@@ -56,7 +56,7 @@ class HelpSelect(discord.ui.Select):
                 description=f"أوامر العملة العالمية **{settings.CURRENCY_NAME}**:",
                 fields=[
                     ("`/balance`, `/cash`, `/رصيدي`", "عرض رصيد المحفظة والبنك وإجمالي الثروة", False),
-                    ("`/daily`, `/يومي`", "المطالبة بالمكافأة اليومية مع مضاعف الاستمرارية", False),
+                    ("`/daily`", "المطالبة بالمكافأة اليومية مع مضاعف الاستمرارية", False),
                     ("`/pay user:User amount:N`", "تحويل مبلغ مالي لعضو آخر", False),
                     ("`/deposit amount:N/all`", "إيداع مبلغ من المحفظة إلى البنك", False),
                     ("`/withdraw amount:N/all`", "سحب مبلغ من البنك إلى المحفظة", False),
