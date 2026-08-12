@@ -1,7 +1,8 @@
 from typing import List, Optional
 from sqlalchemy import select, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
-from bot.database.models import Warning, ModerationAction, PunishmentSettings, GuildRepository
+from bot.database.models import Warning, ModerationAction, PunishmentSettings
+from bot.database.repositories.guild_repository import GuildRepository
 
 class ModerationRepository:
     def __init__(self, session: AsyncSession):

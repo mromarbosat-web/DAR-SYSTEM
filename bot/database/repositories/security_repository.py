@@ -1,7 +1,8 @@
 from typing import Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from bot.database.models import SecuritySettings, GuildRepository
+from bot.database.models import SecuritySettings
+from bot.database.repositories.guild_repository import GuildRepository
 
 class SecurityRepository:
     def __init__(self, session: AsyncSession):

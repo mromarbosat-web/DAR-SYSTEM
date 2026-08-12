@@ -1,7 +1,8 @@
 from typing import List, Optional
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
-from bot.database.models import WhitelistedUser, WhitelistedRole, WhitelistedBot, GuildRepository
+from bot.database.models import WhitelistedUser, WhitelistedRole, WhitelistedBot
+from bot.database.repositories.guild_repository import GuildRepository
 
 class WhitelistRepository:
     def __init__(self, session: AsyncSession):

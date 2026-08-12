@@ -1,7 +1,8 @@
 from typing import Optional, List
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from bot.database.models import AutoModSettings, GuildRepository
+from bot.database.models import AutoModSettings
+from bot.database.repositories.guild_repository import GuildRepository
 
 class AutoModRepository:
     def __init__(self, session: AsyncSession):

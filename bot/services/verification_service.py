@@ -1,4 +1,5 @@
 import logging
+from typing import Optional
 import discord
 from sqlalchemy.ext.asyncio import AsyncSession
 from bot.database.repositories.verification_repository import VerificationRepository
