@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Tuple, Dict
 from sqlalchemy import select, update, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -59,7 +59,7 @@ class EconomyRepository:
                 return False, balance_before, balance_before, None
 
             wallet.balance = new_balance
-            wallet.updated_at = datetime.utcnow()
+            wallet.updated_at = datetime.now(timezone.utc)
 
             tx = Transaction(
                 user_id=user_id,
@@ -107,8 +107,8 @@ class EconomyRepository:
 
             sender_wallet.balance -= amount
             receiver_wallet.balance += amount
-            sender_wallet.updated_at = datetime.utcnow()
-            receiver_wallet.updated_at = datetime.utcnow()
+            sender_wallet.updated_at = datetime.now(timezone.utc)
+            receiver_wallet.updated_at = datetime.now(timezone.utc)
 
             # Transaction for sender
             tx_sender = Transaction(
@@ -154,7 +154,7 @@ class EconomyRepository:
 
             wallet.balance -= amount
             wallet.bank_balance += amount
-            wallet.updated_at = datetime.utcnow()
+            wallet.updated_at = datetime.now(timezone.utc)
 
             tx = Transaction(
                 user_id=user_id,
@@ -187,7 +187,7 @@ class EconomyRepository:
 
             wallet.bank_balance -= amount
             wallet.balance += amount
-            wallet.updated_at = datetime.utcnow()
+            wallet.updated_at = datetime.now(timezone.utc)
 
             tx = Transaction(
                 user_id=user_id,
@@ -227,7 +227,7 @@ class EconomyRepository:
         streak_bonus: int = 50,
         guild_id: Optional[int] = None
     ) -> Tuple[bool, str, int, int]:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
 
         async with self.session.begin_nested():
             stmt = select(DailyReward).where(DailyReward.user_id == user_id).with_for_update()
@@ -325,7 +325,7 @@ class EconomyRepository:
         for key, value in kwargs.items():
             if hasattr(es, key) and value is not None:
                 setattr(es, key, value)
-        es.updated_at = datetime.utcnow()
+        es.updated_at = datetime.now(timezone.utc)
         await self.session.flush()
         return es
 
