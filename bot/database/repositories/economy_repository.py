@@ -30,11 +30,9 @@ class EconomyRepository:
             wallet = Wallet(user_id=user_id, balance=0, bank_balance=0)
             self.session.add(wallet)
             try:
-                await self.session.commit()
+                await self.session.flush()
             except Exception:
                 await self.session.rollback()
-                await self.session.flush()
-            await self.session.refresh(wallet)
         return wallet
 
     async def get_wallet(self, user_id: int) -> Optional[Wallet]:
@@ -56,12 +54,13 @@ class EconomyRepository:
         Amount can be positive (grant) or negative (deduct/remove).
         Returns (success: bool, balance_before: int, balance_after: int, transaction: Optional[Transaction])
         """
-        async with self.session.begin_nested():
+        try:
             wallet = await self.get_or_create_wallet(user_id)
             balance_before = wallet.balance
             new_balance = balance_before + amount
 
             if new_balance < 0:
+                await self.session.rollback()
                 return False, balance_before, balance_before, None
 
             wallet.balance = new_balance
@@ -78,12 +77,12 @@ class EconomyRepository:
                 reason=reason
             )
             self.session.add(tx)
-            try:
-                await self.session.commit()
-            except Exception:
-                await self.session.rollback()
-                await self.session.flush()
+            await self.session.commit()
             return True, balance_before, new_balance, tx
+        except Exception as e:
+            logger.error(f"Atomic update error: {e}")
+            await self.session.rollback()
+            return False, 0, 0, None
 
     async def transfer_balance_atomic(
         self,
@@ -101,11 +100,12 @@ class EconomyRepository:
         if from_user_id == to_user_id:
             return False, "لا يمكنك تحويل المبلغ لنفسك!", 0, 0
 
-        async with self.session.begin_nested():
+        try:
             sender_wallet = await self.get_or_create_wallet(from_user_id)
             receiver_wallet = await self.get_or_create_wallet(to_user_id)
 
             if sender_wallet.balance < amount:
+                await self.session.rollback()
                 return False, "رصيدك الحالي غير كافٍ لإتمام هذه العملية!", sender_wallet.balance, receiver_wallet.balance
 
             s_before = sender_wallet.balance
@@ -139,20 +139,21 @@ class EconomyRepository:
                 reason=reason or f"Transfer from {from_user_id}"
             )
             self.session.add_all([tx_sender, tx_receiver])
-            try:
-                await self.session.commit()
-            except Exception:
-                await self.session.rollback()
-                await self.session.flush()
+            await self.session.commit()
             return True, "تمت عملية التحويل بنجاح!", sender_wallet.balance, receiver_wallet.balance
+        except Exception as e:
+            logger.error(f"Transfer error: {e}")
+            await self.session.rollback()
+            return False, "حدث خطأ في عملية التحويل", 0, 0
 
     async def deposit_bank_atomic(self, user_id: int, amount: int) -> Tuple[bool, str, int, int]:
         if amount <= 0:
             return False, "المبلغ يجب أن يكون أكبر من صفر!", 0, 0
 
-        async with self.session.begin_nested():
+        try:
             wallet = await self.get_or_create_wallet(user_id)
             if wallet.balance < amount:
+                await self.session.rollback()
                 return False, "رصيدك في المحفظة غير كافٍ!", wallet.balance, wallet.bank_balance
 
             b_before = wallet.balance
@@ -172,20 +173,21 @@ class EconomyRepository:
                 reason="Deposit to Bank"
             )
             self.session.add(tx)
-            try:
-                await self.session.commit()
-            except Exception:
-                await self.session.rollback()
-                await self.session.flush()
+            await self.session.commit()
             return True, "تم إيداع المبلغ في البنك بنجاح!", wallet.balance, wallet.bank_balance
+        except Exception as e:
+            logger.error(f"Deposit error: {e}")
+            await self.session.rollback()
+            return False, "حدث خطأ في عملية الإيداع", 0, 0
 
     async def withdraw_bank_atomic(self, user_id: int, amount: int) -> Tuple[bool, str, int, int]:
         if amount <= 0:
             return False, "المبلغ يجب أن يكون أكبر من صفر!", 0, 0
 
-        async with self.session.begin_nested():
+        try:
             wallet = await self.get_or_create_wallet(user_id)
             if wallet.bank_balance < amount:
+                await self.session.rollback()
                 return False, "رصيدك في البنك غير كافٍ!", wallet.balance, wallet.bank_balance
 
             b_before = wallet.balance
@@ -205,12 +207,12 @@ class EconomyRepository:
                 reason="Withdraw from Bank"
             )
             self.session.add(tx)
-            try:
-                await self.session.commit()
-            except Exception:
-                await self.session.rollback()
-                await self.session.flush()
+            await self.session.commit()
             return True, "تم سحب المبلغ من البنك للمحفظة بنجاح!", wallet.balance, wallet.bank_balance
+        except Exception as e:
+            logger.error(f"Withdraw error: {e}")
+            await self.session.rollback()
+            return False, "حدث خطأ في عملية السحب", 0, 0
 
     async def get_daily_info(self, user_id: int) -> DailyReward:
         stmt = select(DailyReward).where(DailyReward.user_id == user_id)
@@ -235,7 +237,7 @@ class EconomyRepository:
     ) -> Tuple[bool, str, int, int]:
         now = datetime.now(timezone.utc)
 
-        async with self.session.begin_nested():
+        try:
             stmt = select(DailyReward).where(DailyReward.user_id == user_id).with_for_update()
             res = await self.session.execute(stmt)
             daily = res.scalar_one_or_none()
@@ -252,6 +254,7 @@ class EconomyRepository:
                 total_secs = int(diff.total_seconds())
                 hours, remainder = divmod(total_secs, 3600)
                 minutes, seconds = divmod(remainder, 60)
+                await self.session.rollback()
                 return False, f"لقد قمت بتسجيل الدخول (المكافأة اليومية) مسبقًا اليوم!\n⏳ يرجى الانتظار **{hours} ساعة، {minutes} دقيقة و {seconds} ثانية** للمطالبة بها مرة أخرى.", 0, daily.daily_streak
 
             # Streak calculation: if claimed within 48 hours, increase streak; otherwise reset
@@ -282,13 +285,13 @@ class EconomyRepository:
                 reason=f"Daily Reward (Streak {daily.daily_streak})"
             )
             self.session.add(tx)
-            try:
-                await self.session.commit()
-            except Exception:
-                await self.session.rollback()
-                await self.session.flush()
+            await self.session.commit()
 
             return True, f"تم استلام المكافأة اليومية بنجاح! +{total_reward} سراب (Streak: {daily.daily_streak})", total_reward, daily.daily_streak
+        except Exception as e:
+            logger.error(f"Daily claim error: {e}")
+            await self.session.rollback()
+            return False, "حدث خطأ أثناء المطالبة بالمكافأة اليومية", 0, 0
 
     async def get_leaderboard(self, limit: int = 10, include_bank: bool = False) -> List[Tuple[int, int]]:
         if include_bank:
@@ -335,7 +338,7 @@ class EconomyRepository:
             if hasattr(es, key) and value is not None:
                 setattr(es, key, value)
         es.updated_at = utc_now()
-        await self.session.flush()
+        await self.session.commit()
         return es
 
     async def add_referral(self, guild_id: int, inviter_id: int, invited_user_id: int, reward_amount: int) -> Referral:
@@ -347,7 +350,7 @@ class EconomyRepository:
             rewarded=True
         )
         self.session.add(ref)
-        await self.session.flush()
+        await self.session.commit()
         return ref
 
     async def has_been_referred(self, invited_user_id: int) -> bool:

@@ -99,21 +99,24 @@ class ShopRepository:
         """
         Atomically handles wallet deduction, stock decrement, inventory increment, and transaction recording.
         """
-        async with self.session.begin_nested():
+        try:
             # Lock product and wallet
             stmt_p = select(ShopProduct).where(ShopProduct.product_id == product_id).with_for_update()
             res_p = await self.session.execute(stmt_p)
             product = res_p.scalar_one_or_none()
 
             if not product or not product.enabled:
+                await self.session.rollback()
                 return False, "هذا المنتج غير متاح في المتجر حاليًا!", None
 
             if product.stock == 0:
+                await self.session.rollback()
                 return False, "عذرًا، نفد مخزون هذا المنتج بالكامل!", product
 
             # Check max per user
             current_qty = await self.get_user_item_count(user_id, product_id)
             if product.max_per_user > 0 and current_qty >= product.max_per_user:
+                await self.session.rollback()
                 return False, f"لقد وصلت للحد الأقصى المسموح بشرائه لهذا المنتج (`{product.max_per_user}` قطعة)!", product
 
             # Check wallet
@@ -123,6 +126,7 @@ class ShopRepository:
 
             if not wallet or wallet.balance < product.price:
                 curr_bal = wallet.balance if wallet else 0
+                await self.session.rollback()
                 return False, f"رصيدك الحالي (`{curr_bal}` سراب) غير كافٍ لشراء هذا المنتج (`{product.price}` سراب)!", product
 
             # Deduct wallet
@@ -160,7 +164,10 @@ class ShopRepository:
                 reason=f"Bought item #{product.product_id}: {product.name}"
             )
             self.session.add(tx)
-            await self.session.flush()
             await self.session.commit()
 
             return True, f"تم شراء `{product.name}` بنجاح بسعر `{product.price}` سراب!", product
+        except Exception as e:
+            logger.error(f"Error in purchase: {e}")
+            await self.session.rollback()
+            return False, "حدث خطأ أثناء إتمام عملية الشراء.", None

@@ -72,7 +72,8 @@ class EconomyService:
 
     async def process_message_reward(self, guild_id: int, user_id: int) -> Optional[int]:
         """
-        Grants random message activity reward to user if guild is MAIN_GUILD_ID and cooldown passed.
+        Grants message activity reward to user if guild is MAIN_GUILD_ID.
+        Every 5 messages grant 1 Sarab.
         """
         if guild_id != settings.MAIN_GUILD_ID:
             return None
@@ -81,22 +82,21 @@ class EconomyService:
         if not es.message_rewards_enabled:
             return None
 
-        now = datetime.now(timezone.utc)
-        last_time = self._msg_cooldowns.get(user_id)
-        if last_time and (now - last_time) < timedelta(seconds=es.message_cooldown_seconds):
+        count = self._msg_cooldowns.get(user_id, 0) + 1
+        if count >= 5:
+            self._msg_cooldowns[user_id] = 0
+            reward = 1
+            success, _, _, _ = await self.eco_repo.update_balance_atomic(
+                user_id=user_id,
+                amount=reward,
+                transaction_type="MESSAGE_REWARD",
+                guild_id=guild_id,
+                reason="Message Activity Reward (5 messages)"
+            )
+            return reward if success else None
+        else:
+            self._msg_cooldowns[user_id] = count
             return None
-
-        self._msg_cooldowns[user_id] = now
-        reward = random.randint(es.message_reward_min, es.message_reward_max)
-
-        success, _, _, _ = await self.eco_repo.update_balance_atomic(
-            user_id=user_id,
-            amount=reward,
-            transaction_type="MESSAGE_REWARD",
-            guild_id=guild_id,
-            reason="Message Activity Reward in Main Guild"
-        )
-        return reward if success else None
 
     async def process_voice_reward(self, guild_id: int, user_id: int) -> Optional[int]:
         """
