@@ -34,9 +34,9 @@ class EconomyCog(commands.Cog):
             embed = EmbedBuilder.info(
                 title=f"رصيد الاقتصاد - {target.display_name}",
                 description=f"استعلام الرصيد للعملة العالمية **{settings.CURRENCY_NAME}** {settings.CURRENCY_EMOJI}",
-                fields=fields,
-                footer_text=f"User ID: {target.id}"
+                fields=fields
             )
+            embed.set_footer(text=f"User ID: {target.id}")
             await interaction.followup.send(embed=embed)
 
     @app_commands.command(name="daily", description="المطالبة بالمكافأة اليومية مع مكافأة الاستمرارية (Streak)")
