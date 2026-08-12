@@ -20,7 +20,11 @@ class WarningRepository:
             await guild_repo.get_or_create_guild(guild_id, f"Guild_{guild_id}")
             settings = WarningSettings(guild_id=guild_id)
             self.session.add(settings)
-            await self.session.commit()
+            try:
+                await self.session.commit()
+            except Exception:
+                await self.session.rollback()
+                await self.session.flush()
             await self.session.refresh(settings)
         return settings
 
@@ -29,7 +33,11 @@ class WarningRepository:
         for key, value in kwargs.items():
             if hasattr(settings, key) and value is not None:
                 setattr(settings, key, value)
-        await self.session.commit()
+        try:
+            await self.session.commit()
+        except Exception:
+            await self.session.rollback()
+            await self.session.flush()
         await self.session.refresh(settings)
         return settings
 
@@ -59,7 +67,11 @@ class WarningRepository:
             expires_at=expires_at
         )
         self.session.add(warning)
-        await self.session.commit()
+        try:
+            await self.session.commit()
+        except Exception:
+            await self.session.rollback()
+            await self.session.flush()
         await self.session.refresh(warning)
 
         if evidence_url:
@@ -70,7 +82,11 @@ class WarningRepository:
                 note="Initial warning evidence"
             )
             self.session.add(evidence)
-            await self.session.commit()
+            try:
+                await self.session.commit()
+            except Exception:
+                await self.session.rollback()
+                await self.session.flush()
 
         return warning
 

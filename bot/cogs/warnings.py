@@ -1,7 +1,7 @@
 import discord
 from discord import app_commands
 from discord.ext import commands
-from typing import Optional, Literal
+from typing import Optional, Literal, Union
 from bot.database.connection import AsyncSessionLocal
 from bot.services.warning_service import WarningService
 from bot.utils.hierarchy import can_moderate_member, has_warning_permission
@@ -27,13 +27,17 @@ class WarningsCog(commands.Cog):
     async def warn_command(
         self,
         interaction: discord.Interaction,
-        user: discord.Member,
+        user: Union[discord.Member, discord.User],
         reason: str,
         type: Literal["formal", "verbal"] = "formal",
         duration: Optional[str] = None,
         evidence: Optional[str] = None
     ):
         await interaction.response.defer(ephemeral=False)
+
+        if not interaction.guild:
+            await interaction.followup.send("❌ هذا الأمر مخصص للاستخدام داخل السيرفرات فقط.", ephemeral=True)
+            return
 
         async with AsyncSessionLocal() as session:
             service = WarningService(session)
@@ -63,7 +67,7 @@ class WarningsCog(commands.Cog):
             embed = discord.Embed(
                 title="⚠️ تم إصدار تحذير بنجاح",
                 color=discord.Color.red() if type == "formal" else discord.Color.gold(),
-                timestamp=warning.created_at
+                timestamp=warning.created_at or discord.utils.utcnow()
             )
             embed.add_field(name="العضو المحذر", value=f"{user.mention} (`{user.id}`)", inline=True)
             embed.add_field(name="المشرف", value=f"{interaction.user.mention}", inline=True)

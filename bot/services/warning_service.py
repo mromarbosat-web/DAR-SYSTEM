@@ -1,7 +1,7 @@
 import re
 import discord
-from datetime import datetime, timedelta
-from typing import Optional, List, Tuple
+from datetime import datetime, timedelta, timezone
+from typing import Optional, List, Tuple, Union
 from sqlalchemy.ext.asyncio import AsyncSession
 from bot.database.repositories.warning_repository import WarningRepository
 from bot.database.repositories.log_repository import LogRepository
@@ -16,11 +16,12 @@ def parse_duration_string(duration_str: str) -> Tuple[Optional[int], Optional[da
     if not duration_str or duration_str.lower() in ["permanent", "perm", "0", "forever", "دائم", "دائمة"]:
         return None, None
 
+    now = datetime.now(timezone.utc)
     match = re.match(r"^(\d+)\s*([hdwmy])$", duration_str.lower().strip())
     if not match:
         # Default to 30 days if invalid pattern
         delta = timedelta(days=30)
-        return int(delta.total_seconds()), datetime.utcnow() + delta
+        return int(delta.total_seconds()), now + delta
 
     val = int(match.group(1))
     unit = match.group(2)
@@ -39,7 +40,7 @@ def parse_duration_string(duration_str: str) -> Tuple[Optional[int], Optional[da
         delta = timedelta(days=30)
 
     total_seconds = int(delta.total_seconds())
-    expires_at = datetime.utcnow() + delta
+    expires_at = now + delta
     return total_seconds, expires_at
 
 class WarningService:
@@ -58,7 +59,7 @@ class WarningService:
         self,
         guild: discord.Guild,
         issuer: discord.Member,
-        target: discord.Member,
+        target: Union[discord.Member, discord.User],
         reason: str,
         warning_type: str = "formal",
         duration_str: Optional[str] = None,
@@ -90,7 +91,7 @@ class WarningService:
 
         # Check Staff Demotion or Automated Punishment threshold if formal warning
         punishment_msg = None
-        if warning_type == "formal" and settings.staff_demotion_enabled:
+        if warning_type == "formal" and settings.staff_demotion_enabled and isinstance(target, discord.Member):
             active_count = await self.warning_repo.get_active_formal_warning_count(guild.id, target.id)
             if active_count >= settings.staff_demotion_threshold:
                 punishment_msg = await self.apply_staff_demotion(guild, target, settings, active_count)
@@ -103,7 +104,7 @@ class WarningService:
         settings: WarningSettings,
         warning: Warning,
         issuer: discord.Member,
-        target: discord.Member
+        target: Union[discord.Member, discord.User]
     ):
         if not settings.evidence_channel_id:
             return
@@ -115,14 +116,15 @@ class WarningService:
         embed = discord.Embed(
             title=f"📋 سجل أدلة تحذير | ID: `{warning.warning_id}`",
             color=discord.Color.red() if warning.warning_type == "formal" else discord.Color.gold(),
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
         embed.add_field(name="العضو المحذر", value=f"{target.mention} (`{target.id}`)", inline=True)
         embed.add_field(name="المشرف المسؤول", value=f"{issuer.mention} (`{issuer.id}`)", inline=True)
         embed.add_field(name="نوع التحذير", value="تحذير رسمي (Formal)" if warning.warning_type == "formal" else "تحذير شفهي (Verbal)", inline=True)
         embed.add_field(name="السبب", value=warning.reason, inline=False)
         if warning.expires_at:
-            embed.add_field(name="تاريخ الانتهاء", value=f"<t:{int(warning.expires_at.timestamp())}:R>", inline=True)
+            exp_ts = int(warning.expires_at.timestamp())
+            embed.add_field(name="تاريخ الانتهاء", value=f"<t:{exp_ts}:R>", inline=True)
         else:
             embed.add_field(name="المدة", value="دائم", inline=True)
 

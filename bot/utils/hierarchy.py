@@ -1,9 +1,10 @@
 import discord
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Union
+from bot.config.settings import settings
 
 def can_moderate_member(
     issuer: discord.Member,
-    target: discord.Member,
+    target: Union[discord.Member, discord.User],
     bot_member: Optional[discord.Member] = None,
     check_bot: bool = True
 ) -> Tuple[bool, str]:
@@ -17,15 +18,21 @@ def can_moderate_member(
     if target.id == issuer.guild.owner_id:
         return False, "لا يمكنك تطبيق أي إجراء على مالك السيرفر."
 
-    # Server Owner always bypasses issuer top role hierarchy
-    if issuer.id != issuer.guild.owner_id:
-        if issuer.top_role.position <= target.top_role.position:
-            return False, f"لا يمكنك تطبيق هذا الإجراء على {target.mention} لأن رتبته أفقية أو أعلى من رتبتك."
+    # Bot Owner always bypasses hierarchy
+    if settings.is_bot_owner(issuer.id):
+        return True, ""
 
-    # Check Bot hierarchy if required
-    if check_bot and bot_member:
-        if bot_member.top_role.position <= target.top_role.position:
-            return False, f"لا يستطيع البوت تطبيق هذا الإجراء على {target.mention} لأن رتبة البوت أدنى من أو تساوي رتبته."
+    # Check hierarchy only if both are Member instances
+    if isinstance(issuer, discord.Member) and isinstance(target, discord.Member):
+        # Server Owner always bypasses issuer top role hierarchy
+        if issuer.id != issuer.guild.owner_id:
+            if issuer.top_role.position <= target.top_role.position:
+                return False, f"لا يمكنك تطبيق هذا الإجراء على {target.mention} لأن رتبته أفقية أو أعلى من رتبتك."
+
+        # Check Bot hierarchy if required
+        if check_bot and bot_member:
+            if bot_member.top_role.position <= target.top_role.position:
+                return False, f"لا يستطيع البوت تطبيق هذا الإجراء على {target.mention} لأن رتبة البوت أدنى من أو تساوي رتبته."
 
     return True, ""
 
@@ -37,7 +44,7 @@ def has_warning_permission(
     """
     Check if member has the required role ID or discord permissions.
     """
-    if member.guild_permissions.administrator or member.id == member.guild.owner_id:
+    if settings.is_bot_owner(member.id) or member.guild_permissions.administrator or member.id == member.guild.owner_id:
         return True
 
     if not warning_settings:

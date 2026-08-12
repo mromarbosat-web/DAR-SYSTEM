@@ -14,14 +14,21 @@ class EconomyRepository:
     def __init__(self, session: AsyncSession):
         self.session = session
 
-    async def get_or_create_wallet(self, user_id: int) -> Wallet:
-        stmt = select(Wallet).where(Wallet.user_id == user_id).with_for_update()
+    async def get_or_create_wallet(self, user_id: int, for_update: bool = False) -> Wallet:
+        stmt = select(Wallet).where(Wallet.user_id == user_id)
+        if for_update:
+            stmt = stmt.with_for_update()
         res = await self.session.execute(stmt)
         wallet = res.scalar_one_or_none()
         if not wallet:
             wallet = Wallet(user_id=user_id, balance=0, bank_balance=0)
             self.session.add(wallet)
-            await self.session.flush()
+            try:
+                await self.session.commit()
+            except Exception:
+                await self.session.rollback()
+                await self.session.flush()
+            await self.session.refresh(wallet)
         return wallet
 
     async def get_wallet(self, user_id: int) -> Optional[Wallet]:
