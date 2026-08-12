@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Tuple, Dict
 from sqlalchemy import select, update, func, or_
 from sqlalchemy.ext.asyncio import AsyncSession
+from bot.database.models.economy import Wallet, DailyReward, Transaction, EconomySettings, ShopProduct, UserInventory, Referral
 
 from bot.utils.time import utc_now
 

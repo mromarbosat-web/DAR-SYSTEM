@@ -56,7 +56,8 @@ class SecurityBot(commands.Bot):
                 await self.load_extension(ext)
                 logger.info(f"Loaded cog extension: {ext}")
             except Exception as e:
-                logger.error(f"Failed to load cog extension {ext}: {e}", exc_info=True)
+                logger.critical(f"CRITICAL: Failed to load {ext}: {e}", exc_info=True)
+                raise RuntimeError(f"CRITICAL: Failed to load cog extension {ext}") from e
 
 async def main():
     if not settings.DISCORD_BOT_TOKEN:
