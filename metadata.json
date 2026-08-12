@@ -1,0 +1,6 @@
+{
+  "name": "Security & Management Bot",
+  "description": "Professional Discord Security and Management Bot with Anti-Raid, Anti-Nuke, AutoMod, Moderation, Logs, Verification and Railway/Supabase deployment ready.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
