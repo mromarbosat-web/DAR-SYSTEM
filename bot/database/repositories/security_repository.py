@@ -16,8 +16,14 @@ class SecurityRepository:
             # Ensure guild exists first
             guild_repo = GuildRepository(self.session)
             await guild_repo.get_or_create_guild(guild_id, f"Guild_{guild_id}")
-            result = await self.session.execute(stmt)
-            settings = result.scalar_one_or_none()
+            settings = SecuritySettings(guild_id=guild_id)
+            self.session.add(settings)
+            try:
+                await self.session.commit()
+            except Exception:
+                await self.session.rollback()
+                await self.session.flush()
+            await self.session.refresh(settings)
         return settings
 
     async def update_anti_raid(

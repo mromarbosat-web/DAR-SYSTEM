@@ -20,7 +20,7 @@ class WarningSettings(Base):
     
     evidence_channel_id: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True)
     default_warning_duration: Mapped[str] = mapped_column(String(50), default="30d")
-    staff_demotion_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    staff_demotion_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
     staff_demotion_threshold: Mapped[int] = mapped_column(Integer, default=3)
     demotion_action: Mapped[str] = mapped_column(String(50), default="remove_roles") # remove_roles, timeout, kick
     verbal_warning_threshold: Mapped[int] = mapped_column(Integer, default=3)

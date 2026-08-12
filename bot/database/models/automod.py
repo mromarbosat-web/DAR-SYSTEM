@@ -10,7 +10,7 @@ class AutoModSettings(Base):
 
     guild_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("guilds.guild_id", ondelete="CASCADE"), primary_key=True)
     
-    enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     anti_spam_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
     max_messages_per_5s: Mapped[int] = mapped_column(Integer, default=5)
     max_mentions: Mapped[int] = mapped_column(Integer, default=5)

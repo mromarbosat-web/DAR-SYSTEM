@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from typing import Optional, List, Tuple
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
+from bot.utils.time import utc_now
 from bot.database.models.economy import ShopProduct, UserInventory, Wallet, Transaction
 
 logger = logging.getLogger("discord_bot.shop_repository")
@@ -47,10 +48,14 @@ class ShopRepository:
             type=type.upper().strip(),
             role_id=role_id,
             data=data,
-            enabled=enabled
+            enabled=enabled,
+            created_at=utc_now(),
+            updated_at=utc_now()
         )
         self.session.add(product)
         await self.session.flush()
+        await self.session.commit()
+        await self.session.refresh(product)
         return product
 
     async def update_product(self, product_id: int, **kwargs) -> Optional[ShopProduct]:
@@ -61,14 +66,18 @@ class ShopRepository:
         for key, val in kwargs.items():
             if hasattr(product, key) and val is not None:
                 setattr(product, key, val)
-        product.updated_at = datetime.now(timezone.utc)
-        await self.session.flush()
+        product.updated_at = utc_now()
+        await self.session.commit()
+        await self.session.refresh(product)
         return product
 
     async def delete_product(self, product_id: int) -> bool:
-        stmt = delete(ShopProduct).where(ShopProduct.product_id == product_id)
-        res = await self.session.execute(stmt)
-        return res.rowcount > 0
+        product = await self.get_product(product_id)
+        if not product:
+            return False
+        await self.session.delete(product)
+        await self.session.commit()
+        return True
 
     async def get_user_inventory(self, user_id: int) -> List[Tuple[ShopProduct, int]]:
         stmt = select(ShopProduct, UserInventory.quantity).join(
@@ -152,5 +161,6 @@ class ShopRepository:
             )
             self.session.add(tx)
             await self.session.flush()
+            await self.session.commit()
 
             return True, f"تم شراء `{product.name}` بنجاح بسعر `{product.price}` سراب!", product
