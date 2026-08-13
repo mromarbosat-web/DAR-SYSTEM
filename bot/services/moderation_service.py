@@ -118,3 +118,85 @@ class ModerationService:
 
         msg = f"تم تحذير العضو {target.mention} بنجاح. رقم التحذير: `{warning.warning_id}` (إجمالي التحذيرات: `{warn_count}`){ladder_note}"
         return True, msg, escalated_action
+
+    async def kick_user(self, guild: discord.Guild, moderator: discord.Member, target: discord.Member, reason: str) -> Tuple[bool, str]:
+        can_act, h_reason = check_hierarchy(moderator, target)
+        if not can_act:
+            return False, h_reason
+
+        try:
+            # DM user
+            dm_embed = EmbedBuilder.error(title="👢 تم طردك من السيرفر", description=f"لقد تم طردك من سيرفر **{guild.name}**.\n**السبب:** `{reason}`")
+            try: await target.send(embed=dm_embed)
+            except: pass
+
+            await target.kick(reason=reason)
+            await self.mod_repo.log_moderation_action(guild.id, target.id, moderator.id, "kick", reason)
+            
+            log_embed = EmbedBuilder.log(
+                title="👢 طرد عضو (Kick)",
+                color=discord.Color.orange(),
+                fields=[("👤 المستهدف", target.mention, True), ("🆔 المعرف", format_id(target.id), True), ("👮 المشرف", moderator.mention, True), ("📝 السبب", f"`{reason}`", False)],
+                author=moderator
+            )
+            await self.log_service.log_event(guild, "moderation", log_embed)
+            return True, f"تم طرد {target.mention} بنجاح."
+        except discord.Forbidden:
+            return False, "لا يمتلك البوت صلاحية كافية لطرد هذا العضو."
+        except Exception as e:
+            return False, f"حدث خطأ: {e}"
+
+    async def ban_user(self, guild: discord.Guild, moderator: discord.Member, target: discord.Member, reason: str, delete_days: int = 0) -> Tuple[bool, str]:
+        can_act, h_reason = check_hierarchy(moderator, target)
+        if not can_act:
+            return False, h_reason
+
+        try:
+            # DM user
+            dm_embed = EmbedBuilder.error(title="🔨 تم حظرك من السيرفر", description=f"لقد تم حظرك نهائياً من سيرفر **{guild.name}**.\n**السبب:** `{reason}`")
+            try: await target.send(embed=dm_embed)
+            except: pass
+
+            await target.ban(reason=reason, delete_message_days=min(max(delete_days, 0), 7))
+            await self.mod_repo.log_moderation_action(guild.id, target.id, moderator.id, "ban", reason)
+
+            log_embed = EmbedBuilder.log(
+                title="🔨 حظر عضو (Ban)",
+                color=discord.Color.red(),
+                fields=[("👤 المستهدف", target.mention, True), ("🆔 المعرف", format_id(target.id), True), ("👮 المشرف", moderator.mention, True), ("📝 السبب", f"`{reason}`", False)],
+                author=moderator
+            )
+            await self.log_service.log_event(guild, "moderation", log_embed)
+            return True, f"تم حظر {target.mention} بنجاح."
+        except discord.Forbidden:
+            return False, "لا يمتلك البوت صلاحية كافية لحظر هذا العضو."
+        except Exception as e:
+            return False, f"حدث خطأ: {e}"
+
+    async def timeout_user(self, guild: discord.Guild, moderator: discord.Member, target: discord.Member, duration_seconds: int, reason: str) -> Tuple[bool, str]:
+        can_act, h_reason = check_hierarchy(moderator, target)
+        if not can_act:
+            return False, h_reason
+
+        try:
+            until_dt = discord.utils.utcnow() + discord.utils.timedelta(seconds=duration_seconds)
+            # DM user
+            dm_embed = EmbedBuilder.error(title="⏳ تم عزل مؤقت بحقك", description=f"تم عزل مؤقت (Timeout) عليك في سيرفر **{guild.name}**.\n**السبب:** `{reason}`")
+            try: await target.send(embed=dm_embed)
+            except: pass
+
+            await target.timeout(until_dt, reason=reason)
+            await self.mod_repo.log_moderation_action(guild.id, target.id, moderator.id, "timeout", reason, duration_seconds)
+
+            log_embed = EmbedBuilder.log(
+                title="⏳ عزل مؤقت (Timeout)",
+                color=discord.Color.orange(),
+                fields=[("👤 المستهدف", target.mention, True), ("🆔 المعرف", format_id(target.id), True), ("👮 المشرف", moderator.mention, True), ("📝 السبب", f"`{reason}`", False)],
+                author=moderator
+            )
+            await self.log_service.log_event(guild, "moderation", log_embed)
+            return True, f"تم عزل {target.mention} بنجاح."
+        except discord.Forbidden:
+            return False, "لا يمتلك البوت صلاحية كافية لعزل هذا العضو."
+        except Exception as e:
+            return False, f"حدث خطأ: {e}"
