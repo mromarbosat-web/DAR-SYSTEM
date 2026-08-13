@@ -89,59 +89,5 @@ class SecurityCog(commands.Cog):
             embed = await setup_service.get_security_status(interaction.guild)
             await interaction.followup.send(embed=embed, ephemeral=True)
 
-    @app_commands.command(name="lock", description="إغلاق القناة الحالية أو كافة القنوات بمنع إرسال الرسائل")
-    @app_commands.checks.has_permissions(manage_channels=True)
-    @app_commands.describe(all_channels="هل تريد إغلاق كل القنوات النصية في السيرفر؟", reason="سبب الإغلاق")
-    async def lock_command(self, interaction: discord.Interaction, all_channels: bool = False, reason: str = "Lockdown by Moderator"):
-        await interaction.response.defer()
-        guild = interaction.guild
-
-        async with AsyncSessionLocal() as session:
-            sec_service = SecurityService(session)
-            if all_channels:
-                await sec_service.lockdown_guild(guild, reason=reason)
-                embed = EmbedBuilder.warning(
-                    title="تم إغلاق كافة قنوات السيرفر (Server Lockdown Active)",
-                    description=f"تم تطبيق الإغلاق الشامل على جميع القنوات النصية.\n**السبب:** {reason}"
-                )
-            else:
-                channel = interaction.channel
-                overwrites = channel.overwrites_for(guild.default_role)
-                overwrites.send_messages = False
-                await channel.set_permissions(guild.default_role, overwrite=overwrites, reason=reason)
-                embed = EmbedBuilder.warning(
-                    title="تم إغلاق القناة (Channel Locked)",
-                    description=f"تم منع إرسال الرسائل في القناة {channel.mention}.\n**السبب:** {reason}"
-                )
-
-            await interaction.followup.send(embed=embed)
-
-    @app_commands.command(name="unlock", description="فتح القناة الحالية أو كافة القنوات بالسماح بإرسال الرسائل")
-    @app_commands.checks.has_permissions(manage_channels=True)
-    @app_commands.describe(all_channels="هل تريد فتح كل القنوات النصية في السيرفر؟")
-    async def unlock_command(self, interaction: discord.Interaction, all_channels: bool = False):
-        await interaction.response.defer()
-        guild = interaction.guild
-
-        async with AsyncSessionLocal() as session:
-            sec_service = SecurityService(session)
-            if all_channels:
-                await sec_service.unlock_guild(guild, reason="Unlock by Moderator")
-                embed = EmbedBuilder.success(
-                    title="تم إلغاء الإغلاق الشامل (Server Unlocked)",
-                    description="تم فتح كافة القنوات النصية وإتاحة الكتابة مجددًا."
-                )
-            else:
-                channel = interaction.channel
-                overwrites = channel.overwrites_for(guild.default_role)
-                overwrites.send_messages = None
-                await channel.set_permissions(guild.default_role, overwrite=overwrites, reason="Unlock by Moderator")
-                embed = EmbedBuilder.success(
-                    title="تم فتح القناة (Channel Unlocked)",
-                    description=f"تمت إعادة فتح القناة {channel.mention} للكتابة."
-                )
-
-            await interaction.followup.send(embed=embed)
-
 async def setup(bot: commands.Bot):
     await bot.add_cog(SecurityCog(bot))

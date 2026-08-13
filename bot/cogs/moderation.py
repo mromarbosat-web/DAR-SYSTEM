@@ -6,6 +6,7 @@ from typing import Optional
 from bot.database.connection import AsyncSessionLocal
 from bot.services.moderation_service import ModerationService
 from bot.services.permission_service import PermissionService
+from bot.services.security_service import SecurityService
 from bot.database.repositories.moderation_repository import ModerationRepository
 from bot.services.log_service import LogService
 from bot.utils.audit_logs import format_id, format_mention
@@ -456,9 +457,9 @@ class ModerationCog(commands.Cog):
         except Exception as e:
             await interaction.followup.send(embed=EmbedBuilder.error("فشل التعديل", f"حدث خطأ: {e}"))
 
-    @app_commands.command(name="lock", description="قفل القناة النصية الحالية ومنع الأعضاء من الكتابة")
-    @app_commands.describe(reason="سبب القفل")
-    async def lock_text_command(self, interaction: discord.Interaction, reason: str = "Locked by Moderator"):
+    @app_commands.command(name="lock", description="قفل القناة النصية الحالية أو كافة القنوات بمنع إرسال الرسائل")
+    @app_commands.describe(all_channels="هل تريد إغلاق كل القنوات النصية في السيرفر؟", reason="سبب القفل")
+    async def lock_text_command(self, interaction: discord.Interaction, all_channels: bool = False, reason: str = "Locked by Moderator"):
         await interaction.response.defer()
 
         async with AsyncSessionLocal() as session:
@@ -468,30 +469,39 @@ class ModerationCog(commands.Cog):
                 return
 
         try:
-            overwrite = interaction.channel.overwrites_for(interaction.guild.default_role)
-            overwrite.send_messages = False
-            await interaction.channel.set_permissions(interaction.guild.default_role, overwrite=overwrite, reason=reason)
-            
             async with AsyncSessionLocal() as session:
-                log_svc = LogService(session)
-                await log_svc.log_event(interaction.guild, "moderation", EmbedBuilder.log(
-                    title="🔒 قفل قناة نصية",
-                    color=discord.Color.red(),
-                    fields=[
-                        ("📺 القناة", interaction.channel.mention, True),
-                        ("👮 المشرف", interaction.user.mention, True),
-                        ("📝 السبب", reason, False)
-                    ],
-                    author=interaction.user
-                ))
+                if all_channels:
+                    sec_service = SecurityService(session)
+                    await sec_service.lockdown_guild(interaction.guild, reason=reason)
+                    embed = EmbedBuilder.warning(
+                        title="🔒 تم إغلاق كافة قنوات السيرفر (Server Lockdown Active)",
+                        description=f"تم تطبيق الإغلاق الشامل على جميع القنوات النصية.\n**السبب:** {reason}"
+                    )
+                else:
+                    overwrite = interaction.channel.overwrites_for(interaction.guild.default_role)
+                    overwrite.send_messages = False
+                    await interaction.channel.set_permissions(interaction.guild.default_role, overwrite=overwrite, reason=reason)
+                    
+                    log_svc = LogService(session)
+                    await log_svc.log_event(interaction.guild, "moderation", EmbedBuilder.log(
+                        title="🔒 قفل قناة نصية",
+                        color=discord.Color.red(),
+                        fields=[
+                            ("📺 القناة", interaction.channel.mention, True),
+                            ("👮 المشرف", interaction.user.mention, True),
+                            ("📝 السبب", reason, False)
+                        ],
+                        author=interaction.user
+                    ))
+                    embed = EmbedBuilder.success("تم قفل القناة", "تم منع رتبة الجميع من إرسال الرسائل في هذه القناة.")
 
-            await interaction.followup.send(embed=EmbedBuilder.success("تم قفل القناة", "تم منع رتبة الجميع من إرسال الرسائل في هذه القناة."))
+            await interaction.followup.send(embed=embed)
         except Exception as e:
             await interaction.followup.send(embed=EmbedBuilder.error("فشل التنفيذ", f"حدث خطأ: {e}"))
 
-    @app_commands.command(name="unlock", description="فتح القناة النصية الحالية")
-    @app_commands.describe(reason="سبب الفتح")
-    async def unlock_text_command(self, interaction: discord.Interaction, reason: str = "Unlocked by Moderator"):
+    @app_commands.command(name="unlock", description="فتح القناة النصية الحالية أو كافة القنوات")
+    @app_commands.describe(all_channels="هل تريد فتح كل القنوات النصية في السيرفر؟", reason="سبب الفتح")
+    async def unlock_text_command(self, interaction: discord.Interaction, all_channels: bool = False, reason: str = "Unlocked by Moderator"):
         await interaction.response.defer()
 
         async with AsyncSessionLocal() as session:
@@ -501,24 +511,33 @@ class ModerationCog(commands.Cog):
                 return
 
         try:
-            overwrite = interaction.channel.overwrites_for(interaction.guild.default_role)
-            overwrite.send_messages = None
-            await interaction.channel.set_permissions(interaction.guild.default_role, overwrite=overwrite, reason=reason)
-            
             async with AsyncSessionLocal() as session:
-                log_svc = LogService(session)
-                await log_svc.log_event(interaction.guild, "moderation", EmbedBuilder.log(
-                    title="🔓 فتح قناة نصية",
-                    color=discord.Color.green(),
-                    fields=[
-                        ("📺 القناة", interaction.channel.mention, True),
-                        ("👮 المشرف", interaction.user.mention, True),
-                        ("📝 السبب", reason, False)
-                    ],
-                    author=interaction.user
-                ))
+                if all_channels:
+                    sec_service = SecurityService(session)
+                    await sec_service.unlock_guild(interaction.guild, reason=reason)
+                    embed = EmbedBuilder.success(
+                        title="🔓 تم إلغاء الإغلاق الشامل (Server Unlocked)",
+                        description=f"تم فتح كافة القنوات النصية وإتاحة الكتابة مجددًا.\n**السبب:** {reason}"
+                    )
+                else:
+                    overwrite = interaction.channel.overwrites_for(interaction.guild.default_role)
+                    overwrite.send_messages = None
+                    await interaction.channel.set_permissions(interaction.guild.default_role, overwrite=overwrite, reason=reason)
+                    
+                    log_svc = LogService(session)
+                    await log_svc.log_event(interaction.guild, "moderation", EmbedBuilder.log(
+                        title="🔓 فتح قناة نصية",
+                        color=discord.Color.green(),
+                        fields=[
+                            ("📺 القناة", interaction.channel.mention, True),
+                            ("👮 المشرف", interaction.user.mention, True),
+                            ("📝 السبب", reason, False)
+                        ],
+                        author=interaction.user
+                    ))
+                    embed = EmbedBuilder.success("تم فتح القناة", "تمت إعادة إعدادات إرسال الرسائل لوضعها الطبيعي.")
 
-            await interaction.followup.send(embed=EmbedBuilder.success("تم فتح القناة", "تمت إعادة إعدادات إرسال الرسائل لوضعها الطبيعي."))
+            await interaction.followup.send(embed=embed)
         except Exception as e:
             await interaction.followup.send(embed=EmbedBuilder.error("فشل التنفيذ", f"حدث خطأ: {e}"))
 
