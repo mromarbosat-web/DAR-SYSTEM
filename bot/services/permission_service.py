@@ -51,8 +51,8 @@ class PermissionService:
 
     async def has_manager_permission(self, member: discord.Member, permission_type: str) -> bool:
         """
-        Check if member has a specific manager permission (e.g., MODERATION_MANAGER, ECONOMY_MANAGER).
-        Returns True for Bot Owners, Server Admins, or assigned role holders.
+        Check if member has a specific manager permission.
+        Includes support for hierarchical permissions (e.g. MODERATION_MANAGER grants all MOD_* perms).
         """
         if self.is_bot_owner(member.id):
             return True
@@ -60,10 +60,33 @@ class PermissionService:
         if await self.is_server_admin(member):
             return True
 
+        # Check direct permission
+        member_role_ids = {r.id for r in member.roles}
         perm_roles = await self.perm_repo.get_permission_roles(member.guild.id, permission_type)
-        if perm_roles:
-            member_role_ids = {r.id for r in member.roles}
-            if any(rid in member_role_ids for rid in perm_roles):
+        if perm_roles and any(rid in member_role_ids for rid in perm_roles):
+            return True
+
+        # Check hierarchical fallbacks
+        fallbacks = []
+        if permission_type.startswith("MOD_"):
+            fallbacks.append("MODERATION_MANAGER")
+        elif permission_type.startswith("VOICE_"):
+            fallbacks.append("VOICE_MANAGER")
+        elif permission_type.startswith("WARNING_"):
+            fallbacks.append("WARNING_MANAGER")
+        
+        # Specific mappings
+        mapping = {
+            "VOICE_LOCK_UNLOCK": ["VOICE_MANAGER"],
+            "VOICE_MOVE": ["VOICE_MANAGER"],
+            "VOICE_DISCONNECT": ["VOICE_MANAGER"],
+            "VOICE_MUTE_UNMUTE": ["VOICE_MANAGER"],
+        }
+        fallbacks.extend(mapping.get(permission_type, []))
+
+        for fallback in set(fallbacks):
+            f_roles = await self.perm_repo.get_permission_roles(member.guild.id, fallback)
+            if f_roles and any(rid in member_role_ids for rid in f_roles):
                 return True
 
         return False

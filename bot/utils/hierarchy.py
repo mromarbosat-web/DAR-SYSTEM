@@ -36,16 +36,37 @@ def can_moderate_member(
 
     return True, ""
 
-def has_warning_permission(
+from bot.database.repositories.permission_repository import PermissionRepository
+
+async def has_warning_permission(
     member: discord.Member,
     action_type: str, # "issue", "view", "edit", "remove", "expire", "evidence", "settings"
-    warning_settings = None
+    warning_settings = None,
+    session = None
 ) -> bool:
     """
     Check if member has the required role ID or discord permissions.
     """
     if settings.is_bot_owner(member.id) or member.guild_permissions.administrator or member.id == member.guild.owner_id:
         return True
+
+    # Check Custom Permissions via PermissionRepository if session is provided
+    if session:
+        perm_repo = PermissionRepository(session)
+        perm_map = {
+            "issue": "WARNING_ISSUE",
+            "view": "WARNING_VIEW",
+            "edit": "WARNING_EDIT",
+            "remove": "WARNING_REMOVE",
+            "expire": "WARNING_EXPIRE"
+        }
+        perm_type = perm_map.get(action_type)
+        if perm_type:
+            allowed_roles = await perm_repo.get_permission_roles(member.guild.id, perm_type)
+            if allowed_roles:
+                member_role_ids = {r.id for r in member.roles}
+                if any(rid in member_role_ids for rid in allowed_roles):
+                    return True
 
     if not warning_settings:
         # Fallback to standard discord permissions
@@ -57,7 +78,7 @@ def has_warning_permission(
             return member.guild_permissions.moderate_members or member.guild_permissions.view_audit_log
         return False
 
-    # Check configured Role IDs
+    # Check configured Role IDs (Legacy support or secondary check)
     role_map = {
         "issue": warning_settings.issuer_role_id,
         "view": warning_settings.viewer_role_id,
@@ -82,16 +103,41 @@ def has_warning_permission(
 
     return False
 
-def has_voice_permission(
+async def has_voice_permission(
     member: discord.Member,
     action_type: str, # "move", "disconnect", "mute", "unmute", "lock", "unlock", "settings"
-    voice_settings = None
+    voice_settings = None,
+    session = None
 ) -> bool:
     """
     Check if member has voice management permissions.
     """
-    if member.guild_permissions.administrator or member.id == member.guild.owner_id:
+    if settings.is_bot_owner(member.id) or member.guild_permissions.administrator or member.id == member.guild.owner_id:
         return True
+
+    # Check Custom Permissions via PermissionRepository
+    if session:
+        perm_repo = PermissionRepository(session)
+        perm_map = {
+            "move": "VOICE_MOVE",
+            "disconnect": "VOICE_DISCONNECT",
+            "mute": "VOICE_MUTE_UNMUTE",
+            "unmute": "VOICE_MUTE_UNMUTE",
+            "lock": "VOICE_LOCK_UNLOCK",
+            "unlock": "VOICE_LOCK_UNLOCK",
+            "settings": "VOICE_MANAGER"
+        }
+        perm_type = perm_map.get(action_type)
+        if perm_type:
+            allowed_roles = await perm_repo.get_permission_roles(member.guild.id, perm_type)
+            # Also check broad VOICE_MANAGER
+            manager_roles = await perm_repo.get_permission_roles(member.guild.id, "VOICE_MANAGER")
+            
+            check_roles = set(allowed_roles or []) | set(manager_roles or [])
+            if check_roles:
+                member_role_ids = {r.id for r in member.roles}
+                if any(rid in member_role_ids for rid in check_roles):
+                    return True
 
     if voice_settings and voice_settings.voice_manager_role_id:
         member_role_ids = [r.id for r in member.roles]

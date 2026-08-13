@@ -34,7 +34,7 @@ class VoiceCog(commands.Cog):
             service = VoiceService(session)
             settings = await service.get_settings(interaction.guild_id)
 
-            if not has_voice_permission(interaction.user, "move", settings):
+            if not await has_voice_permission(interaction.user, "move", settings, session):
                 await interaction.followup.send("❌ لا تملك صلاحية نقل الأعضاء في القنوات الصوتية.", ephemeral=True)
                 return
 
@@ -76,7 +76,7 @@ class VoiceCog(commands.Cog):
             service = VoiceService(session)
             settings = await service.get_settings(interaction.guild_id)
 
-            if not has_voice_permission(interaction.user, "disconnect", settings):
+            if not await has_voice_permission(interaction.user, "disconnect", settings, session):
                 await interaction.followup.send("❌ لا تملك صلاحية فصل الأعضاء من القنوات الصوتية.", ephemeral=True)
                 return
 
@@ -119,7 +119,7 @@ class VoiceCog(commands.Cog):
             service = VoiceService(session)
             settings = await service.get_settings(interaction.guild_id)
 
-            if not has_voice_permission(interaction.user, "mute", settings):
+            if not await has_voice_permission(interaction.user, "mute", settings, session):
                 await interaction.followup.send("❌ لا تملك صلاحية كتم الأعضاء صوتیًا.", ephemeral=True)
                 return
 
@@ -164,7 +164,7 @@ class VoiceCog(commands.Cog):
             service = VoiceService(session)
             settings = await service.get_settings(interaction.guild_id)
 
-            if not has_voice_permission(interaction.user, "unmute", settings):
+            if not await has_voice_permission(interaction.user, "unmute", settings, session):
                 await interaction.followup.send("❌ لا تملك صلاحية إلغاء كتم الأعضاء صوتيًا.", ephemeral=True)
                 return
 
@@ -214,7 +214,7 @@ class VoiceCog(commands.Cog):
             service = VoiceService(session)
             settings = await service.get_settings(interaction.guild_id)
 
-            if not has_voice_permission(interaction.user, "lock", settings):
+            if not await has_voice_permission(interaction.user, "lock", settings, session):
                 await interaction.followup.send("❌ لا تملك صلاحية قفل القنوات الصوتية.", ephemeral=True)
                 return
 
@@ -253,7 +253,7 @@ class VoiceCog(commands.Cog):
             service = VoiceService(session)
             settings = await service.get_settings(interaction.guild_id)
 
-            if not has_voice_permission(interaction.user, "unlock", settings):
+            if not await has_voice_permission(interaction.user, "unlock", settings, session):
                 await interaction.followup.send("❌ لا تملك صلاحية فتح القنوات الصوتية.", ephemeral=True)
                 return
 
@@ -286,7 +286,7 @@ class VoiceCog(commands.Cog):
             service = VoiceService(session)
             settings = await service.get_settings(interaction.guild_id)
 
-            if not has_voice_permission(interaction.user, "settings", settings):
+            if not await has_voice_permission(interaction.user, "settings", settings, session):
                 await interaction.followup.send("❌ لا تملك صلاحية تعديل إعدادات الصوت.", ephemeral=True)
                 return
 

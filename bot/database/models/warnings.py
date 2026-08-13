@@ -42,6 +42,7 @@ class Warning(Base):
     status: Mapped[str] = mapped_column(String(20), default="ACTIVE", nullable=False) # ACTIVE, EXPIRED, REMOVED, VOIDED
     
     reason: Mapped[str] = mapped_column(Text, nullable=False)
+    local_id: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     evidence_url: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     
     duration_seconds: Mapped[Optional[int]] = mapped_column(BigInteger, nullable=True) # None = Permanent

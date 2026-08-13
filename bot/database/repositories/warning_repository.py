@@ -56,6 +56,14 @@ class WarningRepository:
         guild_repo = GuildRepository(self.session)
         await guild_repo.get_or_create_guild(guild_id, f"Guild_{guild_id}")
 
+        # Calculate local_id for this user
+        stmt = select(func.max(Warning.local_id)).where(
+            and_(Warning.guild_id == guild_id, Warning.user_id == user_id)
+        )
+        result = await self.session.execute(stmt)
+        max_id = result.scalar() or 0
+        local_id = max_id + 1
+
         warning = Warning(
             guild_id=guild_id,
             user_id=user_id,
@@ -63,6 +71,7 @@ class WarningRepository:
             warning_type=warning_type,
             status="ACTIVE",
             reason=reason,
+            local_id=local_id,
             evidence_url=evidence_url,
             duration_seconds=duration_seconds,
             expires_at=ensure_utc(expires_at)
@@ -109,7 +118,22 @@ class WarningRepository:
         await self.session.refresh(evidence)
         return evidence
 
-    async def get_warning(self, guild_id: int, warning_id: str) -> Optional[Warning]:
+    async def get_warning(self, guild_id: int, user_id: int, local_id: int) -> Optional[Warning]:
+        stmt = (
+            select(Warning)
+            .options(selectinload(Warning.evidences))
+            .where(
+                and_(
+                    Warning.guild_id == guild_id, 
+                    Warning.user_id == user_id,
+                    Warning.local_id == local_id
+                )
+            )
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def get_warning_by_uuid(self, guild_id: int, warning_id: str) -> Optional[Warning]:
         stmt = (
             select(Warning)
             .options(selectinload(Warning.evidences))
@@ -172,13 +196,14 @@ class WarningRepository:
     async def edit_warning(
         self,
         guild_id: int,
-        warning_id: str,
+        user_id: int,
+        local_id: int,
         editor_id: int,
         new_reason: Optional[str] = None,
         new_evidence: Optional[str] = None,
         new_expires_at: Optional[datetime] = None
     ) -> Optional[Warning]:
-        warning = await self.get_warning(guild_id, warning_id)
+        warning = await self.get_warning(guild_id, user_id, local_id)
         if not warning:
             return None
 
@@ -210,12 +235,13 @@ class WarningRepository:
     async def remove_warning(
         self,
         guild_id: int,
-        warning_id: str,
+        user_id: int,
+        local_id: int,
         remover_id: int,
         removal_reason: str,
         status: str = "REMOVED" # "REMOVED" or "VOIDED"
     ) -> Optional[Warning]:
-        warning = await self.get_warning(guild_id, warning_id)
+        warning = await self.get_warning(guild_id, user_id, local_id)
         if not warning:
             return None
 
@@ -228,8 +254,8 @@ class WarningRepository:
         await self.session.refresh(warning)
         return warning
 
-    async def expire_warning(self, guild_id: int, warning_id: str) -> Optional[Warning]:
-        warning = await self.get_warning(guild_id, warning_id)
+    async def expire_warning(self, guild_id: int, user_id: int, local_id: int) -> Optional[Warning]:
+        warning = await self.get_warning(guild_id, user_id, local_id)
         if not warning:
             return None
 
@@ -238,6 +264,40 @@ class WarningRepository:
         await self.session.commit()
         await self.session.refresh(warning)
         return warning
+
+    async def set_warning_status(self, guild_id: int, user_id: int, local_id: int, status: str) -> Optional[Warning]:
+        warning = await self.get_warning(guild_id, user_id, local_id)
+        if not warning:
+            return None
+        
+        warning.status = status
+        warning.updated_at = utc_now()
+        await self.session.commit()
+        await self.session.refresh(warning)
+        return warning
+
+    async def delete_warning_permanently(self, guild_id: int, user_id: int, local_id: int) -> bool:
+        warning = await self.get_warning(guild_id, user_id, local_id)
+        if not warning:
+            return False
+        
+        await self.session.delete(warning)
+        await self.session.commit()
+        return True
+
+    async def delete_all_user_warnings(self, guild_id: int, user_id: int) -> int:
+        from sqlalchemy import delete
+        stmt = delete(Warning).where(and_(Warning.guild_id == guild_id, Warning.user_id == user_id))
+        result = await self.session.execute(stmt)
+        await self.session.commit()
+        return result.rowcount
+
+    async def delete_all_guild_warnings(self, guild_id: int) -> int:
+        from sqlalchemy import delete
+        stmt = delete(Warning).where(Warning.guild_id == guild_id)
+        result = await self.session.execute(stmt)
+        await self.session.commit()
+        return result.rowcount
 
     async def expire_outdated_warnings(self, guild_id: int, user_id: Optional[int] = None) -> int:
         now = utc_now()

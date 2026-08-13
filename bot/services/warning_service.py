@@ -99,7 +99,7 @@ class WarningService:
         )
         embed.add_field(name="👤 المستهدف", value=f"{target.mention} (`{target.id}`)", inline=True)
         embed.add_field(name="👮 المشرف", value=f"{issuer.mention} (`{issuer.id}`)", inline=True)
-        embed.add_field(name="📄 رقم التحذير", value=f"`{warning.warning_id}`", inline=True)
+        embed.add_field(name="📄 رقم التحذير (#)", value=f"`{warning.local_id}`", inline=True)
         embed.add_field(name="📝 السبب", value=warning.reason, inline=False)
         if expires_at:
             embed.add_field(name="⏳ ينتهي في", value=f"<t:{int(expires_at.timestamp())}:R>", inline=True)
@@ -198,13 +198,14 @@ class WarningService:
     ) -> List[Warning]:
         return await self.warning_repo.get_user_warnings(guild_id, user_id, status, warning_type)
 
-    async def get_warning_by_id(self, guild_id: int, warning_id: str) -> Optional[Warning]:
-        return await self.warning_repo.get_warning(guild_id, warning_id)
+    async def get_warning_by_local_id(self, guild_id: int, user_id: int, local_id: int) -> Optional[Warning]:
+        return await self.warning_repo.get_warning(guild_id, user_id, local_id)
 
     async def edit_warning(
         self,
         guild_id: int,
-        warning_id: str,
+        user_id: int,
+        local_id: int,
         editor_id: int,
         new_reason: Optional[str] = None,
         new_evidence: Optional[str] = None,
@@ -216,7 +217,8 @@ class WarningService:
 
         return await self.warning_repo.edit_warning(
             guild_id=guild_id,
-            warning_id=warning_id,
+            user_id=user_id,
+            local_id=local_id,
             editor_id=editor_id,
             new_reason=new_reason,
             new_evidence=new_evidence,
@@ -226,7 +228,8 @@ class WarningService:
     async def remove_warning(
         self,
         guild_id: int,
-        warning_id: str,
+        user_id: int,
+        local_id: int,
         remover_id: int,
         reason: str,
         void: bool = False
@@ -234,11 +237,27 @@ class WarningService:
         status = "VOIDED" if void else "REMOVED"
         return await self.warning_repo.remove_warning(
             guild_id=guild_id,
-            warning_id=warning_id,
+            user_id=user_id,
+            local_id=local_id,
             remover_id=remover_id,
             removal_reason=reason,
             status=status
         )
 
-    async def force_expire_warning(self, guild_id: int, warning_id: str) -> Optional[Warning]:
-        return await self.warning_repo.expire_warning(guild_id, warning_id)
+    async def deactivate_warning(self, guild_id: int, user_id: int, local_id: int) -> Optional[Warning]:
+        return await self.warning_repo.set_warning_status(guild_id, user_id, local_id, "EXPIRED")
+
+    async def activate_warning(self, guild_id: int, user_id: int, local_id: int) -> Optional[Warning]:
+        return await self.warning_repo.set_warning_status(guild_id, user_id, local_id, "ACTIVE")
+
+    async def delete_warning_permanently(self, guild_id: int, user_id: int, local_id: int) -> bool:
+        return await self.warning_repo.delete_warning_permanently(guild_id, user_id, local_id)
+
+    async def delete_all_warnings(self, guild_id: int, user_id: Optional[int] = None) -> int:
+        if user_id:
+            return await self.warning_repo.delete_all_user_warnings(guild_id, user_id)
+        else:
+            return await self.warning_repo.delete_all_guild_warnings(guild_id)
+
+    async def force_expire_warning(self, guild_id: int, user_id: int, local_id: int) -> Optional[Warning]:
+        return await self.warning_repo.expire_warning(guild_id, user_id, local_id)

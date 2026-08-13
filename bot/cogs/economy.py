@@ -9,6 +9,32 @@ from bot.services.log_service import LogService
 from bot.services.shop_service import ShopService
 from bot.utils.embeds import EmbedBuilder
 
+class TransferConfirmation(discord.ui.View):
+    def __init__(self, from_user, to_user, amount, timeout=60):
+        super().__init__(timeout=timeout)
+        self.from_user = from_user
+        self.to_user = to_user
+        self.amount = amount
+        self.value = None
+
+    @discord.ui.button(label="تأكيد التحويل", style=discord.ButtonStyle.green, emoji="✅")
+    async def confirm(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.from_user.id:
+            await interaction.response.send_message("❌ هذا الزر ليس لك!", ephemeral=True)
+            return
+        self.value = True
+        self.stop()
+        await interaction.response.edit_message(view=None)
+
+    @discord.ui.button(label="إلغاء", style=discord.ButtonStyle.red, emoji="❌")
+    async def cancel(self, interaction: discord.Interaction, button: discord.ui.Button):
+        if interaction.user.id != self.from_user.id:
+            await interaction.response.send_message("❌ هذا الزر ليس لك!", ephemeral=True)
+            return
+        self.value = False
+        self.stop()
+        await interaction.response.edit_message(content="❌ تم إلغاء عملية التحويل.", embed=None, view=None)
+
 class EconomyCog(commands.Cog):
     """Cog for User Economy & Admin Economy Commands"""
     def __init__(self, bot: commands.Bot):
@@ -76,7 +102,29 @@ class EconomyCog(commands.Cog):
     @app_commands.command(name="pay", description="تحويل مبلغ مالي من حسابك إلى عضو آخر")
     @app_commands.describe(user="العضو المستلم", amount="المبلغ المراد تحويله")
     async def pay_command(self, interaction: discord.Interaction, user: discord.User, amount: int):
-        await interaction.response.defer()
+        if amount <= 0:
+            await interaction.response.send_message(embed=EmbedBuilder.error("خطأ", "المبلغ يجب أن يكون أكبر من صفر!"), ephemeral=True)
+            return
+        
+        if user.id == interaction.user.id:
+            await interaction.response.send_message(embed=EmbedBuilder.error("خطأ", "لا يمكنك التحويل لنفسك!"), ephemeral=True)
+            return
+
+        if user.bot:
+            await interaction.response.send_message(embed=EmbedBuilder.error("خطأ", "لا يمكنك التحويل للبوتات!"), ephemeral=True)
+            return
+
+        # Confirmation step
+        confirm_embed = EmbedBuilder.info(
+            title="تأكيد عملية التحويل",
+            description=f"هل أنت متأكد من رغبتك في تحويل **{amount:,}** {settings.CURRENCY_NAME} إلى {user.mention}؟"
+        )
+        view = TransferConfirmation(interaction.user, user, amount)
+        await interaction.response.send_message(embed=confirm_embed, view=view)
+        
+        await view.wait()
+        if view.value is not True:
+            return
 
         async with AsyncSessionLocal() as session:
             eco_service = EconomyService(session)
@@ -86,6 +134,7 @@ class EconomyCog(commands.Cog):
                 amount=amount,
                 guild_id=interaction.guild.id if interaction.guild else None
             )
+            
             if success:
                 log_svc = LogService(session)
                 embed_log = discord.Embed(title="💸 تحويل رصيد", color=discord.Color.blue())
@@ -94,16 +143,29 @@ class EconomyCog(commands.Cog):
                 embed_log.add_field(name="المبلغ", value=f"`{amount}`", inline=False)
                 await log_svc.log_event(interaction.guild, "economy", embed_log)
 
+                # Send DMs
+                dm_embed_sender = EmbedBuilder.info(
+                    title="💸 تأكيد تحويل رصيد",
+                    description=f"لقد قمت بتحويل **{amount:,}** {settings.CURRENCY_NAME} بنجاح إلى {user.mention}."
+                )
+                dm_embed_receiver = EmbedBuilder.success(
+                    title="💰 وصول حوالة مالية",
+                    description=f"لقد استلمت حوالة بقيمة **{amount:,}** {settings.CURRENCY_NAME} من {interaction.user.mention}."
+                )
+                
+                try: await interaction.user.send(embed=dm_embed_sender)
+                except: pass
+                try: await user.send(embed=dm_embed_receiver)
+                except: pass
 
-            if success:
-                embed = EmbedBuilder.success(
+                final_embed = EmbedBuilder.success(
                     title="تم تحويل المبلغ",
                     description=f"تم تحويل `{amount:,}` {settings.CURRENCY_NAME} من {interaction.user.mention} إلى {user.mention} بنجاح."
                 )
             else:
-                embed = EmbedBuilder.error("فشل التحويل", msg)
+                final_embed = EmbedBuilder.error("فشل التحويل", msg)
 
-            await interaction.followup.send(embed=embed)
+            await interaction.edit_original_response(embed=final_embed, view=None)
 
     @app_commands.command(name="deposit", description="إيداع مبلغ من المحفظة إلى حساب البنك")
     @app_commands.describe(amount="المبلغ المراد إيداعه (أو اكتب 'all' لإيداع كل الرصيد)")

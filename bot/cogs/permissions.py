@@ -72,25 +72,42 @@ class PermissionAdminCog(commands.Cog):
 
             await interaction.followup.send(embed=embed, ephemeral=True)
 
-    @perm_group.command(name="set_manager", description="تخصيص رتبة لمدير نظام فرعي محدد (Manager Role)")
+    @perm_group.command(name="set_manager", description="تخصيص رتبة لمدير نظام فرعي أو صلاحية محددة (Permission Role)")
     @app_commands.describe(
-        permission="نوع الصلاحية الفرعية",
+        permission="نوع الصلاحية الممنوحة",
         role="الرتبة الممنوحة"
     )
     @app_commands.choices(permission=[
-        app_commands.Choice(name="Warning Manager (إدارة التحذيرات)", value="WARNING_MANAGER"),
-        app_commands.Choice(name="Moderation Manager (إدارة الإشراف)", value="MODERATION_MANAGER"),
+        # Core Managers
+        app_commands.Choice(name="Moderation Manager (إدارة الإشراف الشاملة)", value="MODERATION_MANAGER"),
+        app_commands.Choice(name="Voice Manager (إدارة الصوت الشاملة)", value="VOICE_MANAGER"),
+        app_commands.Choice(name="Warning Manager (إدارة التحذيرات الشاملة)", value="WARNING_MANAGER"),
+        
+        # Detailed Warnings
+        app_commands.Choice(name="Warning: Issue (إصدار تحذير)", value="WARNING_ISSUE"),
+        app_commands.Choice(name="Warning: Remove (حذف تحذير)", value="WARNING_REMOVE"),
+        app_commands.Choice(name="Warning: View (عرض التحذيرات)", value="WARNING_VIEW"),
+        
+        # Detailed Moderation
+        app_commands.Choice(name="Mod: Timeout (عزل مؤقت)", value="MOD_TIMEOUT"),
+        app_commands.Choice(name="Mod: Kick (طرد)", value="MOD_KICK"),
+        app_commands.Choice(name="Mod: Ban (حظر)", value="MOD_BAN"),
+        app_commands.Choice(name="Mod: Purge (مسح رسائل)", value="MOD_PURGE"),
+        app_commands.Choice(name="Mod: Slowmode (وضع بطيء)", value="MOD_SLOWMODE"),
+        app_commands.Choice(name="Mod: Lock/Unlock (قفل وفتح القنوات النصية)", value="MOD_LOCK_UNLOCK"),
+        
+        # Detailed Voice
+        app_commands.Choice(name="Voice: Lock/Unlock (قفل وفتح الرومات الصوتية)", value="VOICE_LOCK_UNLOCK"),
+        app_commands.Choice(name="Voice: Move (نقل)", value="VOICE_MOVE"),
+        app_commands.Choice(name="Voice: Disconnect (فصل)", value="VOICE_DISCONNECT"),
+        app_commands.Choice(name="Voice: Mute/Unmute (كتم)", value="VOICE_MUTE_UNMUTE"),
+        
+        # Other Systems
         app_commands.Choice(name="Security Manager (إدارة الحماية)", value="SECURITY_MANAGER"),
-        app_commands.Choice(name="Voice Manager (إدارة الرومات الصوتية)", value="VOICE_MANAGER"),
         app_commands.Choice(name="Logs Manager (إدارة السجلات)", value="LOGS_MANAGER"),
         app_commands.Choice(name="Verification Manager (إدارة التحقق)", value="VERIFICATION_MANAGER"),
         app_commands.Choice(name="AutoMod Manager (إدارة الفلترة التلقائية)", value="AUTOMOD_MANAGER"),
-        app_commands.Choice(name="Whitelist Manager (إدارة القائمة البيضاء)", value="WHITELIST_MANAGER"),
-        app_commands.Choice(name="Settings Manager (إدارة الإعدادات)", value="SETTINGS_MANAGER"),
-        app_commands.Choice(name="Role Manager (إدارة الرتب)", value="ROLE_MANAGER"),
         app_commands.Choice(name="Economy Manager (إدارة الاقتصاد)", value="ECONOMY_MANAGER"),
-        app_commands.Choice(name="Shop Manager (إدارة المتجر)", value="SHOP_MANAGER"),
-        app_commands.Choice(name="Transaction Viewer (عرض المعاملات المالية)", value="TRANSACTION_VIEWER"),
     ])
     async def set_manager(self, interaction: discord.Interaction, permission: app_commands.Choice[str], role: discord.Role):
         await interaction.response.defer(ephemeral=True)
@@ -111,25 +128,30 @@ class PermissionAdminCog(commands.Cog):
 
             await interaction.followup.send(embed=embed, ephemeral=True)
 
-    @perm_group.command(name="remove_manager", description="إزالة رتبة من صلاحية مدير نظام فرعي")
+    @perm_group.command(name="remove_manager", description="إزالة رتبة من صلاحية محددة")
     @app_commands.describe(
-        permission="نوع الصلاحية الفرعية",
+        permission="نوع الصلاحية",
         role="الرتبة المراد سحب الصلاحية منها"
     )
     @app_commands.choices(permission=[
-        app_commands.Choice(name="Warning Manager", value="WARNING_MANAGER"),
         app_commands.Choice(name="Moderation Manager", value="MODERATION_MANAGER"),
-        app_commands.Choice(name="Security Manager", value="SECURITY_MANAGER"),
         app_commands.Choice(name="Voice Manager", value="VOICE_MANAGER"),
-        app_commands.Choice(name="Logs Manager", value="LOGS_MANAGER"),
-        app_commands.Choice(name="Verification Manager", value="VERIFICATION_MANAGER"),
-        app_commands.Choice(name="AutoMod Manager", value="AUTOMOD_MANAGER"),
-        app_commands.Choice(name="Whitelist Manager", value="WHITELIST_MANAGER"),
-        app_commands.Choice(name="Settings Manager", value="SETTINGS_MANAGER"),
-        app_commands.Choice(name="Role Manager", value="ROLE_MANAGER"),
+        app_commands.Choice(name="Warning Manager", value="WARNING_MANAGER"),
+        app_commands.Choice(name="Warning: Issue", value="WARNING_ISSUE"),
+        app_commands.Choice(name="Warning: Remove", value="WARNING_REMOVE"),
+        app_commands.Choice(name="Warning: View", value="WARNING_VIEW"),
+        app_commands.Choice(name="Mod: Timeout", value="MOD_TIMEOUT"),
+        app_commands.Choice(name="Mod: Kick", value="MOD_KICK"),
+        app_commands.Choice(name="Mod: Ban", value="MOD_BAN"),
+        app_commands.Choice(name="Mod: Purge", value="MOD_PURGE"),
+        app_commands.Choice(name="Mod: Slowmode", value="MOD_SLOWMODE"),
+        app_commands.Choice(name="Mod: Lock/Unlock", value="MOD_LOCK_UNLOCK"),
+        app_commands.Choice(name="Voice: Lock/Unlock", value="VOICE_LOCK_UNLOCK"),
+        app_commands.Choice(name="Voice: Move", value="VOICE_MOVE"),
+        app_commands.Choice(name="Voice: Disconnect", value="VOICE_DISCONNECT"),
+        app_commands.Choice(name="Voice: Mute/Unmute", value="VOICE_MUTE_UNMUTE"),
+        app_commands.Choice(name="Security Manager", value="SECURITY_MANAGER"),
         app_commands.Choice(name="Economy Manager", value="ECONOMY_MANAGER"),
-        app_commands.Choice(name="Shop Manager", value="SHOP_MANAGER"),
-        app_commands.Choice(name="Transaction Viewer", value="TRANSACTION_VIEWER"),
     ])
     async def remove_manager(self, interaction: discord.Interaction, permission: app_commands.Choice[str], role: discord.Role):
         await interaction.response.defer(ephemeral=True)
