@@ -250,12 +250,13 @@ class EconomyRepository:
             last_daily = ensure_utc(daily.last_daily_at)
 
             if next_daily and now < next_daily:
+                streak = daily.daily_streak
+                await self.session.rollback()
                 diff = next_daily - now
                 total_secs = int(diff.total_seconds())
                 hours, remainder = divmod(total_secs, 3600)
                 minutes, seconds = divmod(remainder, 60)
-                await self.session.rollback()
-                return False, f"لقد قمت بتسجيل الدخول (المكافأة اليومية) مسبقًا اليوم!\n⏳ يرجى الانتظار **{hours} ساعة، {minutes} دقيقة و {seconds} ثانية** للمطالبة بها مرة أخرى.", 0, daily.daily_streak
+                return False, f"لقد قمت بتسجيل الدخول (المكافأة اليومية) مسبقًا اليوم!\n⏳ يرجى الانتظار **{hours} ساعة، {minutes} دقيقة و {seconds} ثانية** للمطالبة بها مرة أخرى.", 0, streak
 
             # Streak calculation: if claimed within 48 hours, increase streak; otherwise reset
             if last_daily and (now - last_daily) < timedelta(hours=48):

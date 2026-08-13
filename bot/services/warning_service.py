@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from bot.database.repositories.warning_repository import WarningRepository
 from bot.database.repositories.log_repository import LogRepository
 from bot.database.models import Warning, WarningSettings, WarningEvidence
+from bot.services.log_service import LogService
 from bot.utils.logger import logger
 
 def parse_duration_string(duration_str: str) -> Tuple[Optional[int], Optional[datetime]]:
@@ -48,6 +49,7 @@ class WarningService:
         self.session = session
         self.warning_repo = WarningRepository(session)
         self.log_repo = LogRepository(session)
+        self.log_service = LogService(session)
 
     async def get_settings(self, guild_id: int) -> WarningSettings:
         return await self.warning_repo.get_or_create_warning_settings(guild_id)
@@ -88,6 +90,21 @@ class WarningService:
 
         # Log evidence to Evidence channel if configured
         await self.send_evidence_log(guild, settings, warning, issuer, target)
+
+        # Log to general moderation log via LogService
+        embed = discord.Embed(
+            title="⚠️ توجيه تحذير (Warning)",
+            color=discord.Color.gold() if warning_type == "verbal" else discord.Color.red(),
+            timestamp=datetime.now(timezone.utc)
+        )
+        embed.add_field(name="👤 المستهدف", value=f"{target.mention} (`{target.id}`)", inline=True)
+        embed.add_field(name="👮 المشرف", value=f"{issuer.mention} (`{issuer.id}`)", inline=True)
+        embed.add_field(name="📄 رقم التحذير", value=f"`{warning.warning_id}`", inline=True)
+        embed.add_field(name="📝 السبب", value=warning.reason, inline=False)
+        if expires_at:
+            embed.add_field(name="⏳ ينتهي في", value=f"<t:{int(expires_at.timestamp())}:R>", inline=True)
+        
+        await self.log_service.log_event(guild, "moderation", embed)
 
         # Check Staff Demotion or Automated Punishment threshold if formal warning
         punishment_msg = None
