@@ -7,6 +7,7 @@ from bot.config.settings import settings
 from bot.database.connection import init_db
 from bot.utils.logger import logger
 from bot.utils.invite_tracker import setup_invite_tracker
+from bot.database.migrations.migration_manager import run_migrations
 from bot.events.on_ready import register_ready_event
 from bot.events.on_member_join import register_member_join_event
 from bot.events.on_member_remove import register_member_remove_event
@@ -43,6 +44,9 @@ class SecurityBot(commands.Bot):
     async def setup_hook(self):
         logger.info("Initializing database schema...")
         await init_db()
+        
+        logger.info("Running database migrations...")
+        await run_migrations()
 
         # Load Cogs
         initial_extensions = [
