@@ -14,15 +14,18 @@ except ImportError:
     PIL_AVAILABLE = False
     logger.warning("Pillow is not installed. Profile Card will fall back to embed display.")
 
-def get_system_font(size: int, bold: bool = False, italic: bool = False) -> ImageFont.ImageFont:
-    """Safely retrieves available system TTF font or defaults."""
+from bot.utils.arabic_text import process_bidi_text
+
+def get_system_font(size: int, bold: bool = False, italic: bool = False) -> Optional[ImageFont.ImageFont]:
+    """Safely retrieves available system TTF font with complete Unicode & Arabic support."""
     if not PIL_AVAILABLE:
         return None
     font_candidates = [
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else ("/usr/share/fonts/truetype/liberation/LiberationSans-Italic.ttf" if italic else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"),
         "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf" if bold else ("/usr/share/fonts/truetype/freefont/FreeSansOblique.ttf" if italic else "/usr/share/fonts/truetype/freefont/FreeSans.ttf"),
+        "/usr/share/fonts/truetype/kacst/KacstBook.ttf" if not bold else "/usr/share/fonts/truetype/kacst/KacstTitle.ttf",
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else ("/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf" if italic else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
-        "LiberationSans-Bold.ttf" if bold else "LiberationSans-Regular.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else ("/usr/share/fonts/truetype/liberation/LiberationSans-Italic.ttf" if italic else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"),
+        "FreeSansBold.ttf" if bold else "FreeSans.ttf",
         "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf",
         "arial.ttf"
     ]
@@ -156,17 +159,18 @@ async def generate_profile_card(
             logger.debug(f"Avatar draw error: {e}")
 
     # Fonts
-    font_name = get_system_font(24, bold=True)
-    font_medium = get_system_font(17, bold=True)
+    font_name = get_system_font(23, bold=True)
+    font_medium = get_system_font(16, bold=True)
     font_small = get_system_font(13, bold=False)
     font_label = get_system_font(12, bold=True)
-    font_bio = get_system_font(14, italic=False)
+    font_bio = get_system_font(14, bold=False)
 
     # 4. Member Name, Tag, and Join Date (With subtle text shadow for crisp contrast over banner)
     info_x = avatar_x + avatar_size + 25
     clean_name = member.display_name[:24]
-    draw.text((info_x + 1, 29), clean_name, fill=(0, 0, 0, 200), font=font_name)
-    draw.text((info_x, 28), clean_name, fill=(255, 255, 255, 255), font=font_name)
+    reshaped_name = process_bidi_text(clean_name)
+    draw.text((info_x + 1, 29), reshaped_name, fill=(0, 0, 0, 200), font=font_name)
+    draw.text((info_x, 28), reshaped_name, fill=(255, 255, 255, 255), font=font_name)
 
     join_str = member.joined_at.strftime("%Y-%m-%d") if member.joined_at else "Unknown"
     username_str = f"@{member.name}" if hasattr(member, "name") else ""
@@ -184,19 +188,36 @@ async def generate_profile_card(
     draw_bio_overlay.rounded_rectangle(
         [(bio_box_x1, bio_box_y1), (bio_box_x2, bio_box_y2)],
         radius=10,
-        fill=(14, 18, 30, 150),
-        outline=(255, 255, 255, 50),
+        fill=(14, 18, 32, 175),
+        outline=(255, 255, 255, 60),
         width=1
     )
     card = Image.alpha_composite(card, bio_overlay)
     draw = ImageDraw.Draw(card)
     
     # Status Tag / Header inside the box
-    draw.text((bio_box_x1 + 12, bio_box_y1 + 8), "💬 STATUS / الحالة", fill=(255, 215, 95, 255), font=font_label)
+    # Draw presence status indicator inside header
+    presence_label_map = {
+        discord.Status.online: ("Online", (67, 181, 129, 255)),
+        discord.Status.idle: ("Idle", (250, 166, 26, 255)),
+        discord.Status.dnd: ("Do Not Disturb", (240, 71, 71, 255)),
+        discord.Status.offline: ("Offline", (116, 127, 141, 255)),
+    }
+    p_text, p_color = presence_label_map.get(member_status, ("Online", (67, 181, 129, 255)))
+
+    # Header text
+    status_header_reshaped = process_bidi_text("STATUS / الحالة")
+    draw.text((bio_box_x1 + 12, bio_box_y1 + 8), status_header_reshaped, fill=(255, 215, 95, 255), font=font_label)
     
+    # Small presence status tag on right side of header
+    p_tag_text = f"• {p_text}"
+    draw.text((bio_box_x2 - 110, bio_box_y1 + 8), p_tag_text, fill=p_color, font=font_small)
+
     # Bio Text
-    display_bio = (bio[:65] + "...") if len(bio) > 65 else (bio if bio else "لا توجد حالة مخصصة بعد")
-    draw.text((bio_box_x1 + 12, bio_box_y1 + 28), f'"{display_bio}"', fill=(240, 245, 255, 255), font=font_bio)
+    raw_bio = (bio[:60] + "...") if len(bio) > 60 else (bio if bio and bio.strip() else "لا توجد حالة مخصصة بعد")
+    display_bio = process_bidi_text(f'"{raw_bio}"')
+    draw.text((bio_box_x1 + 13, bio_box_y1 + 29), display_bio, fill=(0, 0, 0, 180), font=font_bio)
+    draw.text((bio_box_x1 + 12, bio_box_y1 + 28), display_bio, fill=(245, 250, 255, 255), font=font_bio)
 
     # 6. Stats Cards Row (Level & Rank, Aura Balance, XP Progress) with Glassmorphism
     stat_y1, stat_y2 = 158, 228
