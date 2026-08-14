@@ -34,6 +34,26 @@ def register_member_logs_ext_events(bot: commands.Bot):
                 )
                 await log_service.log_event(after.guild, "member", embed)
                 
+            # Guild Avatar Change
+            if before.guild_avatar != after.guild_avatar:
+                b_url = before.guild_avatar.url if before.guild_avatar else before.display_avatar.url
+                a_url = after.guild_avatar.url if after.guild_avatar else after.display_avatar.url
+                fields = [
+                    ("👤 العضو", after.mention, True),
+                    ("🆔 المعرف", format_id(after.id), True),
+                    ("🖼️ روابط الصور", f"• [الصورة السابقة]({b_url})\n• [الصورة الحالية]({a_url})", False)
+                ]
+                embed = EmbedBuilder.log(
+                    title="🖼️ تغيير صورة العضو الخاصة بالسيرفر (Server Avatar)",
+                    color=discord.Color.blue(),
+                    fields=fields,
+                    author=after
+                )
+                embed.set_thumbnail(url=b_url)
+                embed.set_image(url=a_url)
+                embed.set_footer(text="الصورة المصغرة: القديمة | الصورة الكبيرة: الجديدة")
+                await log_service.log_event(after.guild, "member", embed)
+
             # Role Change
             if before.roles != after.roles:
                 added_roles = [r for r in after.roles if r not in before.roles]
@@ -106,12 +126,22 @@ def register_member_logs_ext_events(bot: commands.Bot):
                         await log_service.log_event(guild, "member", embed)
                         
                     if before.avatar != after.avatar:
+                        b_url = before.avatar.url if before.avatar else before.default_avatar.url
+                        a_url = after.avatar.url if after.avatar else after.default_avatar.url
                         fields = [
-                            ("👤 المستخدم", after.mention, True)
+                            ("👤 المستخدم", after.mention, True),
+                            ("🆔 المعرف", format_id(after.id), True),
+                            ("🖼️ الروابط المباشرة", f"• [الصورة القديمة (قبل التغيير)]({b_url})\n• [الصورة الجديدة (بعد التغيير)]({a_url})", False)
                         ]
-                        embed = EmbedBuilder.log(title="👤 تغيير الصورة الشخصية", color=discord.Color.blue(), fields=fields, author=after)
-                        if after.avatar:
-                            embed.set_thumbnail(url=after.avatar.url)
+                        embed = EmbedBuilder.log(
+                            title="👤 تغيير الصورة الشخصية (User Avatar)",
+                            color=discord.Color.blue(),
+                            fields=fields,
+                            author=after
+                        )
+                        embed.set_thumbnail(url=b_url)
+                        embed.set_image(url=a_url)
+                        embed.set_footer(text="الصورة المصغرة: القديمة | الصورة الكبيرة: الجديدة")
                         await log_service.log_event(guild, "member", embed)
 
     @bot.event

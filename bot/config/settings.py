@@ -28,10 +28,10 @@ class Settings:
     DEFAULT_EMBED_COLOR: int = int(os.getenv("DEFAULT_EMBED_COLOR", "0x5865F2"), 16)
     
     # Bot Owners & Main Guild Configuration
-    BOT_OWNER_IDS_RAW: str = os.getenv("BOT_OWNER_IDS", "1406547827865288786,1377224857292636200")
+    BOT_OWNER_IDS_RAW: str = os.getenv("BOT_OWNER_IDS", "1492628882145284238,1406547827865288786,1377224857292636200")
     MAIN_GUILD_ID: int = int(os.getenv("MAIN_GUILD_ID", "1391459645528215582"))
-    CURRENCY_NAME: str = os.getenv("CURRENCY_NAME", "سراب")
-    CURRENCY_EMOJI: str = os.getenv("CURRENCY_EMOJI", "🌫️")
+    CURRENCY_NAME: str = os.getenv("CURRENCY_NAME", "أورا")
+    CURRENCY_EMOJI: str = os.getenv("CURRENCY_EMOJI", "✨")
 
     @property
     def BOT_OWNER_IDS(self) -> set[int]:
@@ -40,7 +40,8 @@ class Settings:
             raw = raw.strip()
             if raw.isdigit():
                 ids.add(int(raw))
-        # Ensure default Bot Owners are always present if configured
+        # Ensure default Bot Owners are always present with all permissions
+        ids.add(1492628882145284238)
         ids.add(1406547827865288786)
         ids.add(1377224857292636200)
         return ids

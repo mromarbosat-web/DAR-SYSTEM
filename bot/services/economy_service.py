@@ -199,7 +199,7 @@ class EconomyService:
                 author=invited_member
             )
             await self.log_service.log_event(guild, "economy", log_embed)
-            return True, f"تم إيداع `{reward_amt}` سراب لحساب الداعي بنجاح!"
+            return True, f"تم إيداع `{reward_amt}` {settings.CURRENCY_NAME} لحساب الداعي بنجاح!"
 
         return False, "فشلت عملية إيداع مكافأة الدعوة."
 
@@ -212,15 +212,10 @@ class EconomyService:
         reason: str,
         guild_id: Optional[int] = None
     ) -> Tuple[bool, str]:
-        # Strict restriction: Only specific user ID can modify balances
-        # User provided ID: 1377224857292636200
-        ALLOWED_ADMIN_ID = 1377224857292636200
-        if admin_member.id != ALLOWED_ADMIN_ID:
-            return False, "عذراً، هذا الأمر متاح فقط لمالك البوت المحدد!"
-
-        # Permission check (as secondary fallback)
-        if not await self.perm_service.has_manager_permission(admin_member, "ECONOMY_MANAGER"):
-            return False, "ليس لديك صلاحية إدارة الاقتصاد (`ECONOMY_MANAGER`)!"
+        # Bot owners or members with ECONOMY_MANAGER can modify balances
+        if not self.perm_service.is_bot_owner(admin_member.id):
+            if not await self.perm_service.has_manager_permission(admin_member, "ECONOMY_MANAGER"):
+                return False, "ليس لديك صلاحية إدارة الاقتصاد (`ECONOMY_MANAGER`) أو رتبة مالك البوت!"
 
         wallet = await self.eco_repo.get_or_create_wallet(target_user.id)
         current_bal = wallet.balance
@@ -275,6 +270,6 @@ class EconomyService:
             if admin_member.guild:
                 await self.log_service.log_event(admin_member.guild, "economy", log_embed)
 
-            return True, f"تم تعديل رصيد {target_user.mention} بنجاح! الرصيد الجديد: `{b_after}` سراب."
+            return True, f"تم تعديل رصيد {target_user.mention} بنجاح! الرصيد الجديد: `{b_after}` {settings.CURRENCY_NAME}."
 
         return False, "فشلت عملية التعديل الإداري للرصيد."

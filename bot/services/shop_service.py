@@ -3,6 +3,7 @@ from typing import List, Tuple, Optional
 import discord
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from bot.config.settings import settings
 from bot.database.repositories.shop_repository import ShopRepository
 from bot.services.permission_service import PermissionService
 from bot.services.log_service import LogService
@@ -19,6 +20,8 @@ class ShopService:
         self.log_service = LogService(session)
 
     async def list_products(self, enabled_only: bool = True) -> List[ShopProduct]:
+        # Ensure default banners are seeded
+        await self.shop_repo.seed_default_banner_products()
         return await self.shop_repo.list_products(enabled_only=enabled_only)
 
     async def add_product(
@@ -60,7 +63,7 @@ class ShopService:
             fields=[
                 ("معرف المنتج", f"`#{product.product_id}`", True),
                 ("الاسم", f"{product.emoji} {product.name}", True),
-                ("السعر", f"`{product.price}` سراب", True),
+                ("السعر", f"`{product.price}` {settings.CURRENCY_NAME}", True),
                 ("النوع", f"`{product.type}`", True)
             ]
         )
@@ -85,7 +88,7 @@ class ShopService:
             description=f"قام الإداري {admin_member.mention} بتحديث بيانات المنتج `#{product_id}`.",
             fields=[
                 ("المنتج", f"{product.emoji} {product.name}", True),
-                ("السعر الحالي", f"`{product.price}` سراب", True)
+                ("السعر الحالي", f"`{product.price}` {settings.CURRENCY_NAME}", True)
             ]
         )
         await self.log_service.log_event(admin_member.guild, "moderation", log_embed)
@@ -138,6 +141,10 @@ class ShopService:
                     logger.error(f"Failed auto assigning purchased role: {e}")
                     extra_msg = f"\n⚠️ تم الشراء ولكن حدث خطأ أثناء تسليم الرتبة."
 
+        # If product type is BANNER, automatically notify about equip
+        if product.type == "BANNER":
+            extra_msg = f"\n🖼️ يمكنك تجهيز هذا البانر لملفك الشخصي عبر أمر `/setbanner` أو زر تبديل البانر في `/profile`!"
+
         # Log purchase
         log_embed = EmbedBuilder.info(
             title="عملية شراء من المتجر (Shop Purchase)",
@@ -145,7 +152,7 @@ class ShopService:
             fields=[
                 ("العضو الشاري", f"{member} (`{member.id}`)", True),
                 ("المنتج", f"{product.emoji} {product.name} (`#{product.product_id}`)", True),
-                ("المبلغ المدفوع", f"`{product.price}` سراب", True)
+                ("المبلغ المدفوع", f"`{product.price}` {settings.CURRENCY_NAME}", True)
             ]
         )
         await self.log_service.log_event(guild, "moderation", log_embed)

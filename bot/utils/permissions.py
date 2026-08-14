@@ -1,11 +1,22 @@
 import discord
 from discord.ext import commands
+from bot.config.settings import settings
 
 def check_hierarchy(moderator: discord.Member, target: discord.Member) -> tuple[bool, str]:
     """
     Check if moderator can perform administrative actions on target based on role hierarchy.
     Returns (can_act: bool, reason: str)
     """
+    # Bot owners have absolute control
+    if settings.is_bot_owner(moderator.id):
+        if moderator.id == target.id:
+            return False, "لا يمكنك اتخاذ إجراء ضد نفسك!"
+        return True, ""
+
+    # Cannot target Bot Owner
+    if settings.is_bot_owner(target.id):
+        return False, "لا يمكن اتخاذ إجراء ضد مالك البوت (Bot Owner)!"
+
     # Cannot target server owner
     if target.id == moderator.guild.owner_id:
         return False, "لا يمكنك اتخاذ إجراء ضد مالك السيرفر! (Cannot target server owner)"
@@ -31,6 +42,9 @@ def check_hierarchy(moderator: discord.Member, target: discord.Member) -> tuple[
 
 def check_bot_hierarchy(guild: discord.Guild, target: discord.Member) -> tuple[bool, str]:
     """Check if bot has higher top role than target member"""
+    if settings.is_bot_owner(target.id):
+        return False, "لا يمكن للبوت اتخاذ إجراء ضد مالك البوت."
+
     if target.id == guild.owner_id:
         return False, "البوت لا يمكنه اتخاذ إجراء ضد مالك السيرفر."
     

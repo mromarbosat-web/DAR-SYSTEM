@@ -8,7 +8,7 @@ from bot.database.models.verification import VerificationSettings
 from bot.database.models.logging import LogSettings
 from bot.database.models.whitelist import WhitelistedUser, WhitelistedRole, WhitelistedBot
 from bot.database.models.permissions import GuildAdminRole, GuildPermissionRole
-from bot.database.models.economy import Wallet, DailyReward, Transaction, EconomySettings, ShopProduct, UserInventory, Referral
+from bot.database.models.economy import Wallet, DailyReward, Transaction, EconomySettings, ShopProduct, UserInventory, Referral, UserProfile
 
 __all__ = [
     "Guild",
@@ -36,5 +36,6 @@ __all__ = [
     "ShopProduct",
     "UserInventory",
     "Referral",
+    "UserProfile",
 ]
 

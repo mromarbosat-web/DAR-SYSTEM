@@ -64,6 +64,7 @@ class SecurityBot(commands.Bot):
             "bot.cogs.role_management",
             "bot.cogs.economy",
             "bot.cogs.shop",
+            "bot.cogs.profile",
             "bot.cogs.help",
             "bot.cogs.control"
         ]

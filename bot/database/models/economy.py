@@ -41,8 +41,8 @@ class EconomySettings(Base):
     __tablename__ = "economy_settings"
 
     guild_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    currency_name: Mapped[str] = mapped_column(String(50), default="سراب", nullable=False)
-    currency_emoji: Mapped[str] = mapped_column(String(50), default="🌫️", nullable=False)
+    currency_name: Mapped[str] = mapped_column(String(50), default="أورا", nullable=False)
+    currency_emoji: Mapped[str] = mapped_column(String(50), default="✨", nullable=False)
     daily_reward_amount: Mapped[int] = mapped_column(BigInteger, default=500, nullable=False)
     daily_streak_bonus: Mapped[int] = mapped_column(BigInteger, default=50, nullable=False)
     invite_reward_amount: Mapped[int] = mapped_column(BigInteger, default=100, nullable=False)
@@ -54,6 +54,21 @@ class EconomySettings(Base):
     message_rewards_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     voice_rewards_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     invite_rewards_enabled: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+class UserProfile(Base):
+    __tablename__ = "user_profiles"
+
+    user_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, unique=True, index=True)
+    xp: Mapped[int] = mapped_column(BigInteger, default=0, nullable=False)
+    level: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
+    bio: Mapped[str] = mapped_column(String(300), default="مرحباً بك في ملفي الشخصي!", nullable=False)
+    equipped_banner_id: Mapped[int] = mapped_column(Integer, ForeignKey("shop_products.product_id", ondelete="SET NULL"), nullable=True)
+    equipped_banner_url: Mapped[str] = mapped_column(String(500), nullable=True)
+    equipped_banner_name: Mapped[str] = mapped_column(String(100), default="الافتراضي", nullable=False)
+    messages_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    last_xp_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 

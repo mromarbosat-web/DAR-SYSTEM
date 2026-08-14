@@ -4,11 +4,17 @@ from discord.ext import commands
 from typing import Optional, List, Union
 from datetime import timedelta
 
+from bot.config.settings import settings
 from bot.database.connection import AsyncSessionLocal
 from bot.services.moderation_service import ModerationService
 from bot.services.warning_service import WarningService
 from bot.services.voice_service import VoiceService
 from bot.services.permission_service import PermissionService
+from bot.services.security_service import SecurityService
+from bot.services.automod_service import AutoModService
+from bot.services.log_service import LogService
+from bot.services.economy_service import EconomyService
+from bot.services.shop_service import ShopService
 from bot.utils.embeds import EmbedBuilder
 from bot.utils.audit_logs import format_id
 from bot.utils.permissions import check_hierarchy
@@ -23,10 +29,10 @@ class ControlCog(commands.Cog):
         """Main entry point for the Discord Control Panel."""
         async with AsyncSessionLocal() as session:
             perm_service = PermissionService(session)
-            # Basic check: user must have some administrative or moderation capability
-            if not interaction.user.guild_permissions.administrator and \
-               not interaction.user.guild_permissions.manage_guild and \
-               not interaction.user.guild_permissions.moderate_members:
+            is_admin = interaction.user.guild_permissions.administrator or \
+                       interaction.user.guild_permissions.manage_guild or \
+                       settings.is_bot_owner(interaction.user.id)
+            if not is_admin:
                 await interaction.response.send_message(
                     embed=EmbedBuilder.error("عذراً", "لا تملك الصلاحية الكافية لفتح لوحة التحكم!"),
                     ephemeral=True
@@ -35,16 +41,17 @@ class ControlCog(commands.Cog):
 
         view = ControlMainView()
         embed = discord.Embed(
-            title="🛡️ لوحة التحكم الإدارية | Security Bot Hub",
+            title="🛡️ لوحة التحكم الشاملة | Discord Control Center",
             description=(
-                "مرحباً بك في لوحة التحكم التفاعلية. يمكنك من خلال الأزرار أدناه "
-                "إدارة إعدادات السيرفر، تنفيذ الاختصارات الإدارية، والتحكم في أنظمة الحماية."
+                "مرحباً بك في لوحة التحكم التفاعلية الشاملة داخل الديسكورد.\n"
+                "اختر القسم المطلوب من الأزرار أدناه لإدارة إعدادات السيرفر، أنظمة الحماية، الأوتومود، واللوجات."
             ),
             color=discord.Color.from_rgb(88, 101, 242)
         )
         embed.add_field(name="🌐 السيرفر", value=f"**{interaction.guild.name}**", inline=True)
-        embed.add_field(name="👮 المشرف", value=interaction.user.mention, inline=True)
-        embed.set_footer(text="استخدم القوائم أدناه للتنقل بين الأقسام")
+        embed.add_field(name="👮 المسؤول", value=interaction.user.mention, inline=True)
+        embed.add_field(name="✨ العملة الرسمية", value=f"**{settings.CURRENCY_NAME}** {settings.CURRENCY_EMOJI}", inline=True)
+        embed.set_footer(text="استخدم الأزرار للتنقل المباشر")
         embed.set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else None)
 
         await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
@@ -58,30 +65,144 @@ class ControlMainView(ui.View):
     @ui.button(label="⚡ اختصارات الأوامر", style=discord.ButtonStyle.primary, emoji="⚡", row=0)
     async def shortcuts_btn(self, interaction: discord.Interaction, button: ui.Button):
         view = ShortcutsView()
-        await interaction.response.edit_message(
-            embed=view.get_embed(),
-            view=view
-        )
+        await interaction.response.edit_message(embed=view.get_embed(), view=view)
 
     @ui.button(label="🛡️ Security", style=discord.ButtonStyle.secondary, emoji="🛡️", row=0)
     async def security_btn(self, interaction: discord.Interaction, button: ui.Button):
-        await interaction.response.send_message("سيتم إضافة قسم الحماية قريباً...", ephemeral=True)
+        async with AsyncSessionLocal() as session:
+            sec_service = SecurityService(session)
+            sec_settings = await sec_service.get_security_settings(interaction.guild.id)
+            embed = discord.Embed(
+                title="🛡️ إعدادات الحماية والأمان (Security Settings)",
+                description="حالة أنظمة الحماية المتقدمة داخل السيرفر:",
+                color=discord.Color.blue()
+            )
+            embed.add_field(name="🚫 Anti-Spam", value="مفعل ✅" if sec_settings.anti_spam_enabled else "معطل ❌", inline=True)
+            embed.add_field(name="🚪 Anti-Raid", value="مفعل ✅" if sec_settings.anti_raid_enabled else "معطل ❌", inline=True)
+            embed.add_field(name="💣 Anti-Nuke", value="مفعل ✅" if sec_settings.anti_nuke_enabled else "معطل ❌", inline=True)
+            embed.add_field(name="🤖 Anti-Bot", value="مفعل ✅" if sec_settings.anti_bot_enabled else "معطل ❌", inline=True)
+            embed.add_field(name="🔗 Anti-Invite", value="مفعل ✅" if sec_settings.anti_invite_enabled else "معطل ❌", inline=True)
+            embed.add_field(name="🌐 Anti-Link", value="مفعل ✅" if sec_settings.anti_links_enabled else "معطل ❌", inline=True)
+            view = SecurityControlView(sec_settings)
+            await interaction.response.edit_message(embed=embed, view=view)
 
     @ui.button(label="🤖 AutoMod", style=discord.ButtonStyle.secondary, emoji="🤖", row=1)
     async def automod_btn(self, interaction: discord.Interaction, button: ui.Button):
-        await interaction.response.send_message("سيتم إضافة قسم الأوتومود قريباً...", ephemeral=True)
+        async with AsyncSessionLocal() as session:
+            am_service = AutoModService(session)
+            am_settings = await am_service.get_automod_settings(interaction.guild.id)
+            embed = discord.Embed(
+                title="🤖 نظام الإشراف التلقائي (AutoMod Control)",
+                description="إدارة فلاتر الكلمات والروابط والسبام التلقائي:",
+                color=discord.Color.dark_teal()
+            )
+            embed.add_field(name="🔗 فلتر الروابط (Links Filter)", value="مفعل ✅" if am_settings.links_filter_enabled else "معطل ❌", inline=True)
+            embed.add_field(name="🤬 فلتر الشتائم (Bad Words)", value="مفعل ✅" if am_settings.bad_words_filter_enabled else "معطل ❌", inline=True)
+            embed.add_field(name="📢 فلتر المنشن العشوائي (Mass Mention)", value="مفعل ✅" if am_settings.mass_mention_filter_enabled else "معطل ❌", inline=True)
+            embed.add_field(name="🔠 فلتر الأحرف الكبيرة (Caps Lock)", value="مفعل ✅" if am_settings.caps_filter_enabled else "معطل ❌", inline=True)
+            embed.add_field(name="🔁 فلتر التكرار (Spam Duplication)", value="مفعل ✅" if am_settings.spam_duplication_filter_enabled else "معطل ❌", inline=True)
+            view = AutoModControlView(am_settings)
+            await interaction.response.edit_message(embed=embed, view=view)
 
     @ui.button(label="📋 Logs", style=discord.ButtonStyle.secondary, emoji="📋", row=1)
     async def logs_btn(self, interaction: discord.Interaction, button: ui.Button):
-        await interaction.response.send_message("سيتم إضافة قسم اللوجات قريباً...", ephemeral=True)
+        async with AsyncSessionLocal() as session:
+            log_service = LogService(session)
+            log_settings = await log_service.get_log_settings(interaction.guild.id)
+            embed = discord.Embed(
+                title="📋 نظام سجلات اللوجات المتقدم (Audit Logs)",
+                description="القنوات المخصصة لتسجيل كافة أحداث السيرفر بدقة متناهية:",
+                color=discord.Color.purple()
+            )
+            def fmt_ch(chid):
+                return f"<#{chid}>" if chid else "`غير مخصص`"
+            embed.add_field(name="👥 سجل الأعضاء والبروفايل", value=fmt_ch(log_settings.member_logs_channel_id), inline=True)
+            embed.add_field(name="💬 سجل الرسائل والتعديل", value=fmt_ch(log_settings.message_logs_channel_id), inline=True)
+            embed.add_field(name="🎙️ سجل الرومات الصوتية", value=fmt_ch(log_settings.voice_logs_channel_id), inline=True)
+            embed.add_field(name="🎭 سجل تعديلات الرتب والصلاحيات", value=fmt_ch(log_settings.role_logs_channel_id), inline=True)
+            embed.add_field(name="📁 سجل تعديلات القنوات", value=fmt_ch(log_settings.channel_logs_channel_id), inline=True)
+            embed.add_field(name="🔨 سجل العقوبات والإشراف", value=fmt_ch(log_settings.moderation_logs_channel_id), inline=True)
+            embed.add_field(name="💰 سجل الاقتصاد والمتجر", value=fmt_ch(log_settings.economy_logs_channel_id), inline=True)
+            embed.add_field(name="🛡️ سجل الأمان والحماية", value=fmt_ch(log_settings.security_logs_channel_id), inline=True)
+            view = LogsControlView()
+            await interaction.response.edit_message(embed=embed, view=view)
 
-    @ui.button(label="💰 Economy", style=discord.ButtonStyle.secondary, emoji="💰", row=2)
+    @ui.button(label="💰 Economy & Shop", style=discord.ButtonStyle.secondary, emoji="✨", row=2)
     async def economy_btn(self, interaction: discord.Interaction, button: ui.Button):
-        await interaction.response.send_message("سيتم إضافة قسم الاقتصاد قريباً...", ephemeral=True)
+        async with AsyncSessionLocal() as session:
+            eco_service = EconomyService(session)
+            shop_service = ShopService(session)
+            count, total, avg = await eco_service.get_average(include_bank=True)
+            products = await shop_service.list_products(enabled_only=True)
+            embed = discord.Embed(
+                title=f"✨ إدارة نظام أورا ({settings.CURRENCY_NAME}) والمتجر",
+                description="إحصائيات السيولة النقدية ومنتجات المتجر:",
+                color=discord.Color.gold()
+            )
+            embed.add_field(name="🪙 اسم العملة", value=f"**{settings.CURRENCY_NAME}** {settings.CURRENCY_EMOJI}", inline=True)
+            embed.add_field(name="👥 الحسابات المسجلة", value=f"`{count:,}` حساب", inline=True)
+            embed.add_field(name="💰 إجمالي السيولة", value=f"`{total:,}` {settings.CURRENCY_NAME}", inline=True)
+            embed.add_field(name="🛒 المنتجات المتاحة", value=f"`{len(products)}` منتجات", inline=True)
+            view = EconomyControlView()
+            await interaction.response.edit_message(embed=embed, view=view)
 
-    @ui.button(label="⚙️ Server Settings", style=discord.ButtonStyle.secondary, emoji="⚙️", row=2)
-    async def settings_btn(self, interaction: discord.Interaction, button: ui.Button):
-        await interaction.response.send_message("سيتم إضافة إعدادات السيرفر قريباً...", ephemeral=True)
+class SecurityControlView(ui.View):
+    def __init__(self, sec_settings):
+        super().__init__(timeout=300)
+        self.sec_settings = sec_settings
+
+    @ui.button(label="عودة للقائمة الرئيسية", style=discord.ButtonStyle.danger, emoji="⬅️", row=4)
+    async def back_btn(self, interaction: discord.Interaction, button: ui.Button):
+        view = ControlMainView()
+        embed = discord.Embed(
+            title="🛡️ لوحة التحكم الشاملة | Discord Control Center",
+            description="مرحباً بك مجدداً في اللوحة الرئيسية.",
+            color=discord.Color.from_rgb(88, 101, 242)
+        )
+        await interaction.response.edit_message(embed=embed, view=view)
+
+class AutoModControlView(ui.View):
+    def __init__(self, am_settings):
+        super().__init__(timeout=300)
+        self.am_settings = am_settings
+
+    @ui.button(label="عودة للقائمة الرئيسية", style=discord.ButtonStyle.danger, emoji="⬅️", row=4)
+    async def back_btn(self, interaction: discord.Interaction, button: ui.Button):
+        view = ControlMainView()
+        embed = discord.Embed(
+            title="🛡️ لوحة التحكم الشاملة | Discord Control Center",
+            description="مرحباً بك مجدداً في اللوحة الرئيسية.",
+            color=discord.Color.from_rgb(88, 101, 242)
+        )
+        await interaction.response.edit_message(embed=embed, view=view)
+
+class LogsControlView(ui.View):
+    def __init__(self):
+        super().__init__(timeout=300)
+
+    @ui.button(label="عودة للقائمة الرئيسية", style=discord.ButtonStyle.danger, emoji="⬅️", row=4)
+    async def back_btn(self, interaction: discord.Interaction, button: ui.Button):
+        view = ControlMainView()
+        embed = discord.Embed(
+            title="🛡️ لوحة التحكم الشاملة | Discord Control Center",
+            description="مرحباً بك مجدداً في اللوحة الرئيسية.",
+            color=discord.Color.from_rgb(88, 101, 242)
+        )
+        await interaction.response.edit_message(embed=embed, view=view)
+
+class EconomyControlView(ui.View):
+    def __init__(self):
+        super().__init__(timeout=300)
+
+    @ui.button(label="عودة للقائمة الرئيسية", style=discord.ButtonStyle.danger, emoji="⬅️", row=4)
+    async def back_btn(self, interaction: discord.Interaction, button: ui.Button):
+        view = ControlMainView()
+        embed = discord.Embed(
+            title="🛡️ لوحة التحكم الشاملة | Discord Control Center",
+            description="مرحباً بك مجدداً في اللوحة الرئيسية.",
+            color=discord.Color.from_rgb(88, 101, 242)
+        )
+        await interaction.response.edit_message(embed=embed, view=view)
 
 class ShortcutsView(ui.View):
     def __init__(self):
@@ -100,11 +221,10 @@ class ShortcutsView(ui.View):
 
     @ui.button(label="عودة", style=discord.ButtonStyle.danger, emoji="⬅️", row=4)
     async def back_btn(self, interaction: discord.Interaction, button: ui.Button):
-        from bot.cogs.control import ControlMainView
         view = ControlMainView()
         await interaction.response.edit_message(
             embed=discord.Embed(
-                title="🛡️ لوحة التحكم الإدارية | Security Bot Hub",
+                title="🛡️ لوحة التحكم الشاملة | Discord Control Center",
                 description="مرحباً بك مجدداً في اللوحة الرئيسية.",
                 color=discord.Color.from_rgb(88, 101, 242)
             ),
@@ -211,7 +331,6 @@ class ChannelSelectorView(ui.View):
                 else:
                     await interaction.followup.send("❌ فشل فتح القناة الصوتية.")
             else:
-                # Text Channel Unlock
                 overwrite = channel.overwrites_for(interaction.guild.default_role)
                 overwrite.send_messages = None
                 await channel.set_permissions(interaction.guild.default_role, overwrite=overwrite, reason="Unlocked via Control Panel")
