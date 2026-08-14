@@ -196,9 +196,28 @@ CREATE TABLE IF NOT EXISTS whitelist_bots (
     UNIQUE(guild_id, bot_id)
 );
 
+CREATE TABLE IF NOT EXISTS command_shortcuts (
+    id SERIAL PRIMARY KEY,
+    guild_id BIGINT NOT NULL REFERENCES guilds(guild_id) ON DELETE CASCADE,
+    trigger_word VARCHAR(100) NOT NULL,
+    target_action VARCHAR(50) NOT NULL,
+    allowed_roles VARCHAR(500),
+    ignored_roles VARCHAR(500),
+    allowed_users VARCHAR(500),
+    allowed_channels VARCHAR(500),
+    ignored_channels VARCHAR(500),
+    enabled BOOLEAN DEFAULT TRUE NOT NULL,
+    created_by BIGINT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_guild_trigger_word UNIQUE (guild_id, trigger_word)
+);
+
 -- INDEXES FOR MAXIMUM QUERY PERFORMANCE
 CREATE INDEX IF NOT EXISTS idx_warnings_guild_user ON warnings(guild_id, user_id);
 CREATE INDEX IF NOT EXISTS idx_mod_actions_guild ON moderation_actions(guild_id);
 CREATE INDEX IF NOT EXISTS idx_whitelist_users_guild ON whitelist_users(guild_id);
 CREATE INDEX IF NOT EXISTS idx_whitelist_roles_guild ON whitelist_roles(guild_id);
 CREATE INDEX IF NOT EXISTS idx_whitelist_bots_guild ON whitelist_bots(guild_id);
+CREATE INDEX IF NOT EXISTS idx_shortcuts_guild ON command_shortcuts(guild_id);
+CREATE INDEX IF NOT EXISTS idx_shortcuts_trigger ON command_shortcuts(trigger_word);

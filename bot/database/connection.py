@@ -49,6 +49,14 @@ async def init_db():
                 await conn.execute(text("ALTER TABLE log_settings ADD COLUMN IF NOT EXISTS economy_log_channel_id BIGINT;"))
                 await conn.execute(text("ALTER TABLE log_settings ADD COLUMN IF NOT EXISTS verification_log_channel_id BIGINT;"))
                 await conn.execute(text("ALTER TABLE log_settings ADD COLUMN IF NOT EXISTS automod_log_channel_id BIGINT;"))
+                
+                # Command shortcuts schema patch
+                await conn.execute(text("ALTER TABLE command_shortcuts ADD COLUMN IF NOT EXISTS ignored_roles VARCHAR(500);"))
+                await conn.execute(text("ALTER TABLE command_shortcuts ADD COLUMN IF NOT EXISTS allowed_roles VARCHAR(500);"))
+                await conn.execute(text("ALTER TABLE command_shortcuts ADD COLUMN IF NOT EXISTS allowed_channels VARCHAR(500);"))
+                await conn.execute(text("ALTER TABLE command_shortcuts ADD COLUMN IF NOT EXISTS ignored_channels VARCHAR(500);"))
+                await conn.execute(text("ALTER TABLE command_shortcuts ADD COLUMN IF NOT EXISTS allowed_users VARCHAR(500);"))
+                await conn.execute(text("ALTER TABLE command_shortcuts ADD COLUMN IF NOT EXISTS enabled BOOLEAN DEFAULT TRUE;"))
         except Exception as e:
             logger.warning(f"Error patching db {e}")
 

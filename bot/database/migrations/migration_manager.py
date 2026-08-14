@@ -55,10 +55,71 @@ async def add_local_id_column():
             logger.error(f"Migration failed: {e}")
             raise e
 
+async def migrate_command_shortcuts_columns():
+    """Adds ignored_roles and other missing columns to command_shortcuts table safely without dropping or losing data."""
+    async with AsyncSessionLocal() as session:
+        try:
+            logger.info("Checking and running migrations for command_shortcuts table...")
+            # 1. Create table if not exists
+            await session.execute(text("""
+                CREATE TABLE IF NOT EXISTS command_shortcuts (
+                    id SERIAL PRIMARY KEY,
+                    guild_id BIGINT NOT NULL REFERENCES guilds(guild_id) ON DELETE CASCADE,
+                    trigger_word VARCHAR(100) NOT NULL,
+                    target_action VARCHAR(50) NOT NULL,
+                    allowed_roles VARCHAR(500),
+                    ignored_roles VARCHAR(500),
+                    allowed_users VARCHAR(500),
+                    allowed_channels VARCHAR(500),
+                    ignored_channels VARCHAR(500),
+                    enabled BOOLEAN DEFAULT TRUE NOT NULL,
+                    created_by BIGINT NOT NULL,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                    CONSTRAINT uq_guild_trigger_word UNIQUE (guild_id, trigger_word)
+                );
+            """))
+
+            # 2. Add missing columns safely if the table already existed with older schema
+            columns_to_ensure = [
+                ("ignored_roles", "VARCHAR(500)"),
+                ("allowed_roles", "VARCHAR(500)"),
+                ("allowed_channels", "VARCHAR(500)"),
+                ("ignored_channels", "VARCHAR(500)"),
+                ("allowed_users", "VARCHAR(500)"),
+                ("enabled", "BOOLEAN DEFAULT TRUE"),
+                ("target_action", "VARCHAR(50)"),
+                ("trigger_word", "VARCHAR(100)"),
+                ("created_by", "BIGINT"),
+                ("created_at", "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP"),
+                ("updated_at", "TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP")
+            ]
+
+            for col_name, col_type in columns_to_ensure:
+                try:
+                    await session.execute(text(f"ALTER TABLE command_shortcuts ADD COLUMN IF NOT EXISTS {col_name} {col_type};"))
+                except Exception as col_err:
+                    logger.debug(f"Column check for command_shortcuts.{col_name}: {col_err}")
+
+            # 3. Ensure indexes exist
+            try:
+                await session.execute(text("CREATE INDEX IF NOT EXISTS idx_shortcuts_guild ON command_shortcuts(guild_id);"))
+                await session.execute(text("CREATE INDEX IF NOT EXISTS idx_shortcuts_trigger ON command_shortcuts(trigger_word);"))
+            except Exception as idx_err:
+                logger.debug(f"Index check for command_shortcuts: {idx_err}")
+
+            await session.commit()
+            logger.info("Successfully completed command_shortcuts database migration.")
+        except Exception as e:
+            await session.rollback()
+            logger.error(f"command_shortcuts migration failed: {e}")
+            raise e
+
 async def run_migrations():
     """Runs all necessary database migrations."""
     logger.info("Starting database migrations...")
     await add_local_id_column()
+    await migrate_command_shortcuts_columns()
     logger.info("All migrations completed successfully.")
 
 if __name__ == "__main__":
