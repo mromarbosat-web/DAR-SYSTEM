@@ -160,7 +160,7 @@ DEFAULT_BANNERS = [
         "description": "أفق المدينة الحديثة تحت قطرات المطر وأضواء الشوارع المنعكسة.",
         "emoji": "🏙️",
         "type": "BANNER",
-        "data": "https://images.unsplash.com/photo-1477959858617-67f30bc75b82?w=1000&auto=format&fit=crop&q=80"
+        "data": "https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=1000&auto=format&fit=crop&q=80"
     },
     {
         "name": "🦋 بانر الفراشات المضيئة (Luminous Butterflies)",
@@ -176,7 +176,7 @@ DEFAULT_BANNERS = [
         "description": "طاقة الحمم المتوهجة والشرار المتطاير من فوهة البركان.",
         "emoji": "🌋",
         "type": "BANNER",
-        "data": "https://images.unsplash.com/photo-1508873696983-2df5703bc20d?w=1000&auto=format&fit=crop&q=80"
+        "data": "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=1000&auto=format&fit=crop&q=80"
     },
     {
         "name": "🍂 بانر الخريف الذهبي (Golden Autumn Leaves)",
@@ -209,6 +209,87 @@ DEFAULT_BANNERS = [
         "emoji": "💎",
         "type": "BANNER",
         "data": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1000&auto=format&fit=crop&q=80"
+    },
+    # --- ULTRA LUXURY EXCLUSIVE TIER (> 30,000 Aura) ---
+    {
+        "name": "🌟 بانر عرش الذهب الخالص (Imperial Golden Throne)",
+        "price": 35000,
+        "description": "بانر فاخر ونادر مرصع بزخارف الذهب الخالص وهيبة الملوك.",
+        "emoji": "🌟",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1563245372-f21724e3856d?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "🌌 بانر السديم الكوني الأعظم (Celestial Nebula Sovereign)",
+        "price": 40000,
+        "description": "قوة السدم والمجرات الكونية بألوان أرجوانية وزرقاء عميقة.",
+        "emoji": "🌌",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "🦅 بانر أجنحة النور المقدس (Ethereal Divine Radiance)",
+        "price": 45000,
+        "description": "قمم جبلية ساحرة تعانق سديم الضوء السماوي الخارق.",
+        "emoji": "🦅",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "🔥 بانر طائر الفينيق الأسطوري (Astral Phoenix Rebirth)",
+        "price": 50000,
+        "description": "طيف ألوان الفينيق الأسطوري وطاقته المتجددة من رماد النجوم.",
+        "emoji": "🔥",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "🏛️ بانر القصر الإمبراطوري الشامخ (Imperial Grand Palace)",
+        "price": 55000,
+        "description": "معالم القصور الإمبراطورية التاريخية ذات الهيبة والفخامة.",
+        "emoji": "🏛️",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "💚 بانر الزمرد الملكي الخالد (Royal Emerald Dynasty)",
+        "price": 60000,
+        "description": "طاقة أحجار الزمرد الأخضر النادرة بانعكاسات ساحرة تخطف الأبصار.",
+        "emoji": "💚",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "👑 بانر إمبراطور السايبر الخارق (Cyberpunk Overlord)",
+        "price": 70000,
+        "description": "قمة التطور المستقبلي وقيادة العالم الرقمي بهالة النيون.",
+        "emoji": "👑",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1515260268569-9271009adfdb?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "💥 بانر انفجار السوبرنوفا الأعظم (Cosmic Supernova Prime)",
+        "price": 80000,
+        "description": "طاقة ولادة وانفجار النجوم العظمى في الفضاء الفلكي السحيق.",
+        "emoji": "💥",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "🕳️ بانر ثقب الفضاء الأسود الأزلي (Singularity Black Hole)",
+        "price": 90000,
+        "description": "جاذبية الثقب الأسود المطلقة وانحناء الضوء والزمكان.",
+        "emoji": "🕳️",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1502134249126-9f3755a50d78?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "⚜️ بانر السيادة المطلقة (Supreme Obsidian Sovereign)",
+        "price": 100000,
+        "description": "البانر الأسطوري الأعلى قيمة — هيبة ونفوذ النخبة المطلقة.",
+        "emoji": "⚜️",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1000&auto=format&fit=crop&q=80"
     }
 ]
 
@@ -217,11 +298,12 @@ class ShopRepository:
         self.session = session
 
     async def seed_default_banner_products(self):
-        """Seeds default customizable profile banners if not present"""
+        """Seeds default customizable profile banners if not present and updates URLs if modified"""
         for banner in DEFAULT_BANNERS:
             stmt = select(ShopProduct).where(ShopProduct.name == banner["name"])
             res = await self.session.execute(stmt)
-            if not res.scalar_one_or_none():
+            existing = res.scalar_one_or_none()
+            if not existing:
                 p = ShopProduct(
                     name=banner["name"],
                     price=banner["price"],
@@ -236,6 +318,12 @@ class ShopRepository:
                     updated_at=utc_now()
                 )
                 self.session.add(p)
+            else:
+                existing.data = banner["data"]
+                existing.price = banner["price"]
+                existing.description = banner["description"]
+                existing.emoji = banner["emoji"]
+                existing.updated_at = utc_now()
         try:
             await self.session.commit()
         except Exception as e:
