@@ -5,7 +5,10 @@ import discord
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.database.repositories.activity_repository import ActivityRepository
+from bot.database.models.economy import UserProfile
+from bot.database.repositories.profile_repository import calculate_level_info
 from bot.utils.leaderboard_card import generate_leaderboard_card, format_activity_score
+from sqlalchemy import select
 
 logger = logging.getLogger("discord_bot.activity_service")
 
@@ -74,10 +77,22 @@ class ActivityService:
         limit: int = 10
     ) -> List[Dict[str, Any]]:
         """
-        Fetches top 10 rows and enriches them with discord member profile data (names & avatars).
+        Fetches top 10 rows and enriches them with discord member profile data (names & avatars), level, and XP.
         """
         raw_rows = await self.repo.get_top_leaderboard(guild.id, activity_type=activity_type, period=period, limit=limit)
         entries: List[Dict[str, Any]] = []
+
+        user_ids = [r[0] for r in raw_rows]
+        profile_map = {}
+        if user_ids:
+            try:
+                stmt = select(UserProfile).where(UserProfile.user_id.in_(user_ids))
+                res = await self.session.execute(stmt)
+                profiles = res.scalars().all()
+                for p in profiles:
+                    profile_map[p.user_id] = p
+            except Exception as e:
+                logger.debug(f"Failed to bulk fetch user profiles for leaderboard: {e}")
 
         for rank, (user_id, score) in enumerate(raw_rows, start=1):
             member = guild.get_member(user_id)
@@ -85,15 +100,26 @@ class ActivityService:
                 name = member.display_name
                 avatar_url = member.display_avatar.url
             else:
-                name = f"مستخدم ({user_id})"
+                name = f"User {user_id}"
                 avatar_url = ""
+
+            p = profile_map.get(user_id)
+            if p:
+                lvl, cur_xp, needed_xp, prog = calculate_level_info(p.xp)
+                xp_val = p.xp
+            else:
+                fallback_xp = score * 15 if activity_type == "text" else score * 2
+                lvl, cur_xp, needed_xp, prog = calculate_level_info(fallback_xp)
+                xp_val = fallback_xp
 
             entries.append({
                 "rank": rank,
                 "user_id": user_id,
                 "name": name,
                 "avatar_url": avatar_url,
-                "score": score
+                "score": score,
+                "level": lvl,
+                "xp": xp_val
             })
 
         return entries
