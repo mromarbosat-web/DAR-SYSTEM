@@ -17,9 +17,12 @@ def register_voice_logs_events(bot: commands.Bot):
         async with AsyncSessionLocal() as session:
             try:
                 log_service = LogService(session)
+                from bot.services.activity_service import ActivityService
+                act_service = ActivityService(session)
                 
                 # Voice Join
                 if before.channel is None and after.channel is not None:
+                    await act_service.track_voice_join(member.guild.id, member.id)
                     fields = [
                         ("👤 العضو", member.mention, True),
                         ("🆔 المعرف", format_id(member.id), True),
@@ -35,6 +38,7 @@ def register_voice_logs_events(bot: commands.Bot):
                     
                 # Voice Leave
                 elif before.channel is not None and after.channel is None:
+                    await act_service.track_voice_leave(member.guild.id, member.id)
                     fields = [
                         ("👤 العضو", member.mention, True),
                         ("🆔 المعرف", format_id(member.id), True),
@@ -50,6 +54,8 @@ def register_voice_logs_events(bot: commands.Bot):
                     
                 # Voice Move
                 elif before.channel is not None and after.channel is not None and before.channel != after.channel:
+                    await act_service.track_voice_leave(member.guild.id, member.id)
+                    await act_service.track_voice_join(member.guild.id, member.id)
                     fields = [
                         ("👤 العضو", member.mention, True),
                         ("🆔 المعرف", format_id(member.id), True),

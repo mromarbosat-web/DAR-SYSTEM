@@ -48,6 +48,15 @@ DEFAULT_SHORTCUTS = [
     {"trigger": "عرض تحذيرات", "action": "warnings"},
     {"trigger": "سجل تحذيرات", "action": "warnings"},
     {"trigger": "سجل التحذيرات", "action": "warnings"},
+    {"trigger": "توب", "action": "top"},
+    {"trigger": "التوب", "action": "top"},
+    {"trigger": "المتصدرين", "action": "top"},
+    {"trigger": "متصدرين", "action": "top"},
+    {"trigger": "لوحة الشرف", "action": "top"},
+    {"trigger": "لوحة المتصدرين", "action": "top"},
+    {"trigger": "توب كتابة", "action": "top_text"},
+    {"trigger": "توب فويس", "action": "top_voice"},
+    {"trigger": "توب صوت", "action": "top_voice"},
 ]
 
 class ShortcutRepository:

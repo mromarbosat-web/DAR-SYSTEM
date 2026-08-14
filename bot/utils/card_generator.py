@@ -1,4 +1,5 @@
 import io
+import os
 import logging
 from typing import Optional
 from datetime import datetime
@@ -20,18 +21,36 @@ def get_system_font(size: int, bold: bool = False, italic: bool = False) -> Opti
     """Safely retrieves available system TTF font with complete Unicode & Arabic support."""
     if not PIL_AVAILABLE:
         return None
+
+    # Base font directory in project
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    fonts_dir = os.path.join(base_dir, "assets", "fonts")
+
     font_candidates = [
-        "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf" if bold else ("/usr/share/fonts/truetype/freefont/FreeSansOblique.ttf" if italic else "/usr/share/fonts/truetype/freefont/FreeSans.ttf"),
-        "/usr/share/fonts/truetype/kacst/KacstBook.ttf" if not bold else "/usr/share/fonts/truetype/kacst/KacstTitle.ttf",
+        # 1. Bundled Cairo fonts (Best modern Arabic + Latin typography)
+        os.path.join(fonts_dir, "Cairo-Bold.ttf" if bold else "Cairo-Regular.ttf"),
+        "bot/assets/fonts/Cairo-Bold.ttf" if bold else "bot/assets/fonts/Cairo-Regular.ttf",
+        # 2. System Arabic Kacst fonts
+        "/usr/share/fonts/truetype/kacst/KacstTitle.ttf" if bold else "/usr/share/fonts/truetype/kacst/KacstBook.ttf",
+        "/usr/share/fonts/truetype/kacst/KacstOffice.ttf",
+        "/usr/share/fonts/truetype/kacst/KacstLetter.ttf",
+        "/usr/share/fonts/truetype/kacst/KacstNaskh.ttf",
+        "/usr/share/fonts/truetype/kacst/KacstDecorative.ttf",
+        "/usr/share/fonts/truetype/kacst/KacstQurn.ttf",
+        # 3. System FreeSerif font (has Arabic glyphs)
+        "/usr/share/fonts/truetype/freefont/FreeSerifBold.ttf" if bold else "/usr/share/fonts/truetype/freefont/FreeSerif.ttf",
+        # 4. DejaVu & System fallbacks
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else ("/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf" if italic else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
         "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else ("/usr/share/fonts/truetype/liberation/LiberationSans-Italic.ttf" if italic else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"),
-        "FreeSansBold.ttf" if bold else "FreeSans.ttf",
+        "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf" if bold else ("/usr/share/fonts/truetype/freefont/FreeSansOblique.ttf" if italic else "/usr/share/fonts/truetype/freefont/FreeSans.ttf"),
+        "Cairo-Bold.ttf" if bold else "Cairo-Regular.ttf",
         "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf",
         "arial.ttf"
     ]
     for path in font_candidates:
         try:
-            return ImageFont.truetype(path, size)
+            if os.path.exists(path) or not os.path.isabs(path):
+                return ImageFont.truetype(path, size)
         except Exception:
             continue
     try:
@@ -215,7 +234,7 @@ async def generate_profile_card(
 
     # Bio Text
     raw_bio = (bio[:60] + "...") if len(bio) > 60 else (bio if bio and bio.strip() else "لا توجد حالة مخصصة بعد")
-    display_bio = process_bidi_text(f'"{raw_bio}"')
+    display_bio = process_bidi_text(raw_bio)
     draw.text((bio_box_x1 + 13, bio_box_y1 + 29), display_bio, fill=(0, 0, 0, 180), font=font_bio)
     draw.text((bio_box_x1 + 12, bio_box_y1 + 28), display_bio, fill=(245, 250, 255, 255), font=font_bio)
 

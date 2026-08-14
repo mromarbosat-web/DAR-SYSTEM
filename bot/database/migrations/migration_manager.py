@@ -115,11 +115,39 @@ async def migrate_command_shortcuts_columns():
             logger.error(f"command_shortcuts migration failed: {e}")
             raise e
 
+async def migrate_member_activity_table():
+    """Creates the member_activity table and necessary composite indexes if they do not exist."""
+    async with AsyncSessionLocal() as session:
+        try:
+            logger.info("Checking and creating member_activity table if not exists...")
+            await session.execute(text("""
+                CREATE TABLE IF NOT EXISTS member_activity (
+                    id SERIAL PRIMARY KEY,
+                    guild_id BIGINT NOT NULL,
+                    user_id BIGINT NOT NULL,
+                    activity_date DATE NOT NULL DEFAULT CURRENT_DATE,
+                    messages_count INTEGER NOT NULL DEFAULT 0,
+                    voice_seconds INTEGER NOT NULL DEFAULT 0,
+                    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                    CONSTRAINT uq_member_activity_guild_user_date UNIQUE (guild_id, user_id, activity_date)
+                );
+            """))
+            await session.execute(text("CREATE INDEX IF NOT EXISTS idx_activity_guild_date ON member_activity(guild_id, activity_date);"))
+            await session.execute(text("CREATE INDEX IF NOT EXISTS idx_activity_user ON member_activity(user_id);"))
+            await session.commit()
+            logger.info("Successfully completed member_activity migration.")
+        except Exception as e:
+            await session.rollback()
+            logger.error(f"member_activity migration failed: {e}")
+            raise e
+
 async def run_migrations():
     """Runs all necessary database migrations."""
     logger.info("Starting database migrations...")
     await add_local_id_column()
     await migrate_command_shortcuts_columns()
+    await migrate_member_activity_table()
     logger.info("All migrations completed successfully.")
 
 if __name__ == "__main__":

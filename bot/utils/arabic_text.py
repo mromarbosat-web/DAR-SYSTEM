@@ -1,4 +1,15 @@
 import re
+import logging
+from typing import List
+
+logger = logging.getLogger("discord_bot.arabic_text")
+
+try:
+    import arabic_reshaper
+    from bidi.algorithm import get_display
+    EXTERNAL_BIDI_AVAILABLE = True
+except ImportError:
+    EXTERNAL_BIDI_AVAILABLE = False
 
 # Arabic presentation forms B mapping: (isolated, end/final, start/initial, middle/medial)
 ARABIC_GLYPHS = {
@@ -28,6 +39,7 @@ ARABIC_GLYPHS = {
     '\u0638': ('\ufec5', '\ufec6', '\ufec7', '\ufec8'), # Zah
     '\u0639': ('\ufec9', '\ufeca', '\ufecb', '\ufecc'), # Ain
     '\u063a': ('\ufecd', '\ufece', '\ufecf', '\ufed0'), # Ghain
+    '\u0640': ('\u0640', '\u0640', '\u0640', '\u0640'), # Tatweel / Kashida
     '\u0641': ('\ufed1', '\ufed2', '\ufed3', '\ufed4'), # Feh
     '\u0642': ('\ufed5', '\ufed6', '\ufed7', '\ufed8'), # Qaf
     '\u0643': ('\ufed9', '\ufeda', '\ufedb', '\ufedc'), # Kaf
@@ -64,6 +76,15 @@ LAM_ALEF_LIGATURES = {
     ('\u0644', '\u0627'): ('\ufefb', '\ufefc'), # Plain Alef
 }
 
+# Mirroring brackets in RTL
+BRACKET_MIRROR = {
+    '(': ')', ')': '(',
+    '[': ']', ']': '[',
+    '{': '}', '}': '{',
+    '<': '>', '>': '<',
+    '«': '»', '»': '«',
+}
+
 def is_arabic_char(ch: str) -> bool:
     code = ord(ch)
     return (0x0600 <= code <= 0x06FF) or (0x0750 <= code <= 0x077F) or (0xFB50 <= code <= 0xFDFF) or (0xFE70 <= code <= 0xFEFF)
@@ -73,8 +94,13 @@ def reshape_arabic_word(word: str) -> str:
     if not word:
         return ""
     
-    # First replace Lam-Alef combinations
-    chars = list(word)
+    # Strip tashkeel / diacritics to avoid broken glyphs
+    cleaned = re.sub(r'[\u064B-\u065F\u0670]', '', word)
+    if not cleaned:
+        return ""
+    
+    # Replace Lam-Alef combinations
+    chars = list(cleaned)
     i = 0
     merged = []
     while i < len(chars):
@@ -124,26 +150,39 @@ def reshape_arabic_word(word: str) -> str:
 def process_bidi_text(text: str) -> str:
     """
     Properly handles bidirectional mixed Arabic-English text for PIL rendering.
-    Splits text into words/tokens, reshapes Arabic words, and reverses RTL sequences.
+    Supports external arabic_reshaper/bidi if available, with built-in pure-Python fallback.
     """
     if not text:
         return ""
-        
+
+    if EXTERNAL_BIDI_AVAILABLE:
+        try:
+            reshaped = arabic_reshaper.reshape(text)
+            return get_display(reshaped)
+        except Exception:
+            pass
+
     # Check if string has any Arabic characters
     has_arabic = any(is_arabic_char(c) for c in text)
     if not has_arabic:
         return text
-        
-    tokens = re.split(r'(\s+|[^\w\s]+)', text)
-    reshaped_tokens = []
+
+    # Split text into tokens while preserving separators and spaces
+    tokens = re.split(r'(\s+|[^\w\s\u0600-\u06FF\uFB50-\uFDFF\uFE70-\uFEFF]+)', text)
+    reshaped_tokens: List[str] = []
+
     for token in tokens:
+        if not token:
+            continue
         if any(is_arabic_char(c) for c in token):
             reshaped_word = reshape_arabic_word(token)
-            # Reverse Arabic characters for RTL display
             reshaped_tokens.append(reshaped_word[::-1])
         else:
-            reshaped_tokens.append(token)
-            
-    # Reverse overall token flow for mostly Arabic lines
+            # Mirror brackets if overall text is Arabic
+            mirrored = "".join(BRACKET_MIRROR.get(c, c) for c in token)
+            reshaped_tokens.append(mirrored)
+
+    # Reverse overall token flow for natural Right-To-Left display in PIL
     reshaped_tokens.reverse()
     return "".join(reshaped_tokens)
+

@@ -23,6 +23,16 @@ def register_ready_event(bot: commands.Bot):
             except Exception as e:
                 logger.error(f"Error registering Verification persistent view: {e}")
 
+            # Initialize active voice sessions for all currently connected members
+            from bot.services.activity_service import ActivityService
+            async with AsyncSessionLocal() as session:
+                act_service = ActivityService(session)
+                for guild in bot.guilds:
+                    for vc in guild.voice_channels:
+                        for member in vc.members:
+                            if not member.bot:
+                                await act_service.track_voice_join(guild.id, member.id)
+
             # Update Invite Tracker Cache for all guilds
             if hasattr(bot, "invite_tracker"):
                 for guild in bot.guilds:
@@ -90,6 +100,10 @@ async def voice_rewards_ticker(bot: commands.Bot):
                 continue
 
             async with AsyncSessionLocal() as session:
+                from bot.services.activity_service import ActivityService
+                act_service = ActivityService(session)
+                await act_service.flush_active_voice_sessions()
+
                 eco_service = EconomyService(session)
                 es = await eco_service.eco_repo.get_economy_settings(guild.id)
                 if not es.voice_rewards_enabled:

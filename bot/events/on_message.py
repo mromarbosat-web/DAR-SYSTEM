@@ -21,6 +21,12 @@ def register_message_event(bot: commands.Bot):
             # Process economy message reward for Main Guild
             from bot.services.economy_service import EconomyService
             from bot.services.profile_service import ProfileService
+            from bot.services.activity_service import ActivityService
+
+            # Record chat activity for Leaderboard (3-second anti-spam cooldown)
+            act_service = ActivityService(session)
+            await act_service.track_message_activity(message.guild.id, message.author.id, cooldown_seconds=3.0)
+
             eco_service = EconomyService(session)
             await eco_service.process_message_reward(message.guild.id, message.author.id)
 

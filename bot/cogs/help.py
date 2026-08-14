@@ -61,6 +61,7 @@ class HelpSelect(discord.ui.Select):
                     ("`/deposit amount:N/all`", "إيداع مبلغ من المحفظة إلى البنك", False),
                     ("`/withdraw amount:N/all`", "سحب مبلغ من البنك إلى المحفظة", False),
                     ("`/leaderboard`, `/top`, `/اغنياء`", "عرض قائمة أثرياء ومتصدري كل السيرفرات", False),
+                    ("`/top`, `/توب`", "لوحة شرف المتصدرين (كتابة/فويس | يومي، أسبوعي، شهري، كلي مع كولداون 3 ثوانٍ)", False),
                     ("`/inventory [user]`", "عرض الحقيبة والمشتروات المملوكة", False),
                     ("`/economy average`", "حساب ومتوسط السيولة لجميع الحسابات", False),
                     ("`/shop` & `/buy product_id:N`", "تصفح وشراء المعروضات والرتب الممتازة", False),

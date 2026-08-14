@@ -556,6 +556,26 @@ class ShortcutsCog(commands.Cog):
                     )
                     await message.reply(embed=embed)
 
+            elif action in ["top", "leaderboard", "top_text", "top_voice"]:
+                from bot.services.activity_service import ActivityService
+                from bot.cogs.leaderboard import LeaderboardView
+
+                act_type = "voice" if action == "top_voice" else "text"
+                act_svc = ActivityService(session)
+                embed, file = await act_svc.build_leaderboard(
+                    guild=message.guild,
+                    activity_type=act_type,
+                    period="daily"
+                )
+                view = LeaderboardView(
+                    guild=message.guild,
+                    current_type=act_type,
+                    current_period="daily",
+                    requester_id=message.author.id
+                )
+                attachments = [file] if file else []
+                await message.reply(embed=embed, files=attachments, view=view)
+
     # --- ADMIN SLASH COMMANDS FOR MANAGING SHORTCUTS ---
 
     @shortcut_group.command(name="add", description="إنشاء أو تعديل اختصار نصي للأوامر وتحديد رتب متعددة مسموحة أو مستثناة")
@@ -588,6 +608,9 @@ class ShortcutsCog(commands.Cog):
         app_commands.Choice(name="فتح متجر البانرات (Banner Shop)", value="shop"),
         app_commands.Choice(name="المكافأة اليومية (Daily)", value="daily"),
         app_commands.Choice(name="سجل التحذيرات (Warnings)", value="warnings"),
+        app_commands.Choice(name="لوحة المتصدرين (Leaderboard / Top)", value="top"),
+        app_commands.Choice(name="توب الكتابة (Text Top)", value="top_text"),
+        app_commands.Choice(name="توب الفويس (Voice Top)", value="top_voice"),
     ])
     async def shortcut_add(
         self,

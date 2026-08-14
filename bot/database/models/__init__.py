@@ -10,6 +10,7 @@ from bot.database.models.whitelist import WhitelistedUser, WhitelistedRole, Whit
 from bot.database.models.permissions import GuildAdminRole, GuildPermissionRole
 from bot.database.models.economy import Wallet, DailyReward, Transaction, EconomySettings, ShopProduct, UserInventory, Referral, UserProfile
 from bot.database.models.shortcuts import CommandShortcut
+from bot.database.models.activity import MemberActivity
 
 __all__ = [
     "Guild",
@@ -39,5 +40,6 @@ __all__ = [
     "Referral",
     "UserProfile",
     "CommandShortcut",
+    "MemberActivity",
 ]
 
