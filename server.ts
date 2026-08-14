@@ -6,7 +6,7 @@ dotenv.config();
 const app = express();
 const PORT = 3000;
 
-app.get("*", (req, res) => {
+app.use((req, res) => {
   res.send(`
     <!DOCTYPE html>
     <html lang="ar" dir="rtl">
