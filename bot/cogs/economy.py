@@ -476,8 +476,8 @@ class EconomyCog(commands.Cog):
     async def arabic_balance_command(self, interaction: discord.Interaction, user: Optional[discord.User] = None):
         await self.balance_command.callback(self, interaction, user)
 
-    @app_commands.command(name="top", description="عرض لائحة أغنى الأعضاء في الاقتصاد")
-    async def top_command(self, interaction: discord.Interaction):
+    @app_commands.command(name="rich", description="عرض لائحة أغنى الأعضاء في الاقتصاد")
+    async def rich_command(self, interaction: discord.Interaction):
         await self.leaderboard_command.callback(self, interaction)
 
     @app_commands.command(name="اغنياء", description="عرض لائحة أغنى الأعضاء في جميع السيرفرات")
