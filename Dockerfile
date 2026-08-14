@@ -1,10 +1,13 @@
-# Multi-stage Dockerfile for Discord Bot worker on Railway
+# Multi-stage Dockerfile for Discord Bot & Web Health Server on Railway / Cloud Run
 FROM python:3.11-slim as builder
 
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    python3-dev \
     gcc \
+    g++ \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -17,6 +20,8 @@ WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
+    nodejs \
+    npm \
     fonts-noto-core \
     fonts-kacst \
     fonts-dejavu-core \
@@ -27,8 +32,11 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 
 COPY . .
 
-# Run as non-root user for security
-RUN useradd -m botuser && chown -R botuser:botuser /app
-USER botuser
+# Install Node dependencies for server.ts health check
+RUN npm install
 
-CMD ["python", "-m", "bot.main"]
+EXPOSE 3000
+
+RUN chmod +x start.sh
+
+CMD ["./start.sh"]
