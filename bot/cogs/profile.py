@@ -10,11 +10,11 @@ from bot.database.models.economy import ShopProduct, UserInventory
 from bot.utils.embeds import EmbedBuilder
 from bot.database.repositories.profile_repository import calculate_level_info, generate_xp_bar
 
-class ChangeBioModal(ui.Modal, title="✏️ تعديل الحالة الشخصية (2,000 أورا)"):
+class ChangeBioModal(ui.Modal, title="✏️ Set Status (English Only) [2,000 Aura]"):
     new_bio = ui.TextInput(
-        label="اكتب حالتك الجديدة (Custom Status)",
+        label="Enter your status in English (Required)",
         style=discord.TextStyle.paragraph,
-        placeholder="أدخل حالتك أو حكمتك المميزة هنا...",
+        placeholder="e.g. I am just human",
         required=True,
         max_length=200,
         min_length=2
@@ -269,7 +269,7 @@ class ProfileCog(commands.Cog):
             xp_bar = generate_xp_bar(progress, length=10)
 
             embed = discord.Embed(
-                title=f"⭐ بطاقة المستوى والخبرة | {target.display_name}",
+                title=f"⭐ بطاقة المستوى والخبرة | {target.name}",
                 color=discord.Color.gold()
             )
             embed.set_thumbnail(url=target.display_avatar.url)

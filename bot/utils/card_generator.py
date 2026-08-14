@@ -195,7 +195,7 @@ async def generate_profile_card(
 
     # 4. Member Name, Tag, and Join Date (With subtle text shadow for crisp contrast over banner)
     info_x = avatar_x + avatar_size + 25
-    clean_name = member.display_name[:24]
+    clean_name = member.name[:24]
     reshaped_name = process_bidi_text(clean_name)
     draw.text((info_x + 1, 29), reshaped_name, fill=(0, 0, 0, 200), font=font_name)
     draw.text((info_x, 28), reshaped_name, fill=(255, 255, 255, 255), font=font_name)

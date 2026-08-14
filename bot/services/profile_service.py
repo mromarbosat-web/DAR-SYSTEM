@@ -72,7 +72,7 @@ class ProfileService:
         )
 
         embed = discord.Embed(
-            title=f"👤 بطاقة الملف الشخصي • {member.display_name}",
+            title=f"👤 بطاقة الملف الشخصي • {member.name}",
             description=f"💬 **الحالة:** *{profile.bio}*",
             color=discord.Color.from_rgb(88, 101, 242)
         )

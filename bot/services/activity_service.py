@@ -97,7 +97,7 @@ class ActivityService:
         for rank, (user_id, score) in enumerate(raw_rows, start=1):
             member = guild.get_member(user_id)
             if member:
-                name = member.display_name
+                name = member.name
                 avatar_url = member.display_avatar.url
             else:
                 name = f"User {user_id}"
