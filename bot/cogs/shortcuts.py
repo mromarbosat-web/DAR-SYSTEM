@@ -294,6 +294,32 @@ class ShortcutActionMemberSelectView(ui.View):
 
                 embed.set_footer(text=f"إجمالي التحذيرات: {len(warnings_list)}")
                 await interaction.followup.send(embed=embed, ephemeral=True)
+        elif self.action in ["balance", "bal"]:
+            await interaction.response.defer(ephemeral=True)
+            async with AsyncSessionLocal() as session:
+                eco_svc = EconomyService(session)
+                bal, bank_bal, total = await eco_svc.get_balance(member.id)
+                embed = discord.Embed(
+                    title=f"💰 تفاصيل الرصيد | {member.display_name}",
+                    description=(
+                        f"• 💵 **المحفظة:** `{bal:,}` {settings.CURRENCY_EMOJI}\n"
+                        f"• 🏦 **البنك:** `{bank_bal:,}` {settings.CURRENCY_EMOJI}\n"
+                        f"• ✨ **الإجمالي:** **`{total:,}` {settings.CURRENCY_NAME}**"
+                    ),
+                    color=discord.Color.gold(),
+                    timestamp=discord.utils.utcnow()
+                )
+                embed.set_thumbnail(url=member.display_avatar.url)
+                await interaction.followup.send(embed=embed, ephemeral=True)
+        elif self.action == "profile":
+            await interaction.response.defer(ephemeral=True)
+            async with AsyncSessionLocal() as session:
+                profile_svc = ProfileService(session)
+                embed, card_file = await profile_svc.build_profile_card_file(member)
+                if card_file:
+                    await interaction.followup.send(file=card_file, ephemeral=True)
+                else:
+                    await interaction.followup.send(embed=embed, ephemeral=True)
         elif self.action == "voice_mute":
             await interaction.response.defer(ephemeral=True)
             async with AsyncSessionLocal() as session:
@@ -343,20 +369,34 @@ class ShortcutsCog(commands.Cog):
             return
 
         text = message.content.strip()
-        if not text or len(text) > 50:
+        if not text or len(text) > 80:
+            return
+
+        words = text.split()
+        if not words:
             return
 
         # Check if the text matches a registered shortcut
         async with AsyncSessionLocal() as session:
             repo = ShortcutRepository(session)
+            
+            # 1. Try matching exact text, 2-word trigger, or first-word trigger
             shortcut = await repo.get_shortcut(message.guild.id, text)
+            if not shortcut and len(words) >= 2:
+                shortcut = await repo.get_shortcut(message.guild.id, f"{words[0]} {words[1]}")
+            if not shortcut:
+                shortcut = await repo.get_shortcut(message.guild.id, words[0])
 
-            if not shortcut and len(text.split()) == 1:
+            if not shortcut:
                 # If no shortcuts exist for guild, seed defaults once
                 all_sc = await repo.list_shortcuts(message.guild.id)
                 if not all_sc:
                     await repo.seed_defaults_if_empty(message.guild.id, message.guild.owner_id or message.author.id)
                     shortcut = await repo.get_shortcut(message.guild.id, text)
+                    if not shortcut and len(words) >= 2:
+                        shortcut = await repo.get_shortcut(message.guild.id, f"{words[0]} {words[1]}")
+                    if not shortcut:
+                        shortcut = await repo.get_shortcut(message.guild.id, words[0])
 
             if not shortcut or not shortcut.enabled:
                 return
@@ -457,26 +497,30 @@ class ShortcutsCog(commands.Cog):
                     await message.channel.send("🔓 تم فتح هذه القناة النصية بنجاح.")
 
             elif action == "profile":
+                target_user = message.mentions[0] if message.mentions else message.author
                 profile_svc = ProfileService(session)
-                embed, card_file = await profile_svc.build_profile_card_file(message.author)
-                view = ProfileView(message.author)
+                embed, card_file = await profile_svc.build_profile_card_file(target_user)
+                view = ProfileView(target_user)
                 if card_file:
                     await message.reply(file=card_file, view=view)
                 else:
                     await message.reply(embed=embed, view=view)
 
-            elif action == "balance":
+            elif action in ["balance", "bal"]:
+                target_user = message.mentions[0] if message.mentions else message.author
                 eco_svc = EconomyService(session)
-                wallet = await eco_svc.get_wallet(message.author.id)
+                bal, bank_bal, total = await eco_svc.get_balance(target_user.id)
                 embed = discord.Embed(
-                    title=f"💰 رصيدك في {settings.CURRENCY_NAME} • {message.author.display_name}",
+                    title=f"💰 تفاصيل الرصيد | {target_user.display_name}",
                     description=(
-                        f"• 💵 **المحفظة:** `{wallet.balance:,}` {settings.CURRENCY_EMOJI}\n"
-                        f"• 🏦 **البنك:** `{wallet.bank_balance:,}` {settings.CURRENCY_EMOJI}\n"
-                        f"• ✨ **الإجمالي:** **`{wallet.balance + wallet.bank_balance:,}` {settings.CURRENCY_NAME}**"
+                        f"• 💵 **المحفظة:** `{bal:,}` {settings.CURRENCY_EMOJI}\n"
+                        f"• 🏦 **البنك:** `{bank_bal:,}` {settings.CURRENCY_EMOJI}\n"
+                        f"• ✨ **الإجمالي:** **`{total:,}` {settings.CURRENCY_NAME}**"
                     ),
-                    color=discord.Color.gold()
+                    color=discord.Color.gold(),
+                    timestamp=discord.utils.utcnow()
                 )
+                embed.set_thumbnail(url=target_user.display_avatar.url)
                 await message.reply(embed=embed)
 
             elif action == "shop":

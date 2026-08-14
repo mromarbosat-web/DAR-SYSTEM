@@ -545,6 +545,23 @@ class MemberSelectorView(ui.View):
             await interaction.response.send_modal(ShortcutKickModal(member))
         elif self.action == "ban":
             await interaction.response.send_modal(ShortcutBanModal(member))
+        elif self.action in ["balance", "bal"]:
+            await interaction.response.defer(ephemeral=True)
+            async with AsyncSessionLocal() as session:
+                eco_service = EconomyService(session)
+                bal, bank_bal, total = await eco_service.get_balance(member.id)
+                embed = discord.Embed(
+                    title=f"💰 تفاصيل الرصيد | {member.display_name}",
+                    description=(
+                        f"• 💵 **المحفظة:** `{bal:,}` {settings.CURRENCY_EMOJI}\n"
+                        f"• 🏦 **البنك:** `{bank_bal:,}` {settings.CURRENCY_EMOJI}\n"
+                        f"• ✨ **الإجمالي:** **`{total:,}` {settings.CURRENCY_NAME}**"
+                    ),
+                    color=discord.Color.gold(),
+                    timestamp=discord.utils.utcnow()
+                )
+                embed.set_thumbnail(url=member.display_avatar.url)
+                await interaction.followup.send(embed=embed, ephemeral=True)
         elif self.action == "give_aura":
             await interaction.response.send_modal(GiveAuraModal(member))
         elif self.action == "move":

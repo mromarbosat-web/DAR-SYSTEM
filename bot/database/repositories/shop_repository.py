@@ -49,6 +49,166 @@ DEFAULT_BANNERS = [
         "emoji": "👑",
         "type": "BANNER",
         "data": "https://images.unsplash.com/photo-1550684848-fac1c5b4e853?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "🌸 بانر أزهار الساكورا (Sakura Blossom)",
+        "price": 6000,
+        "description": "بانر طبيعي ساحر لتساقط بتلات أزهار الساكورا الوردية.",
+        "emoji": "🌸",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1522383225653-ed111181a951?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "🌌 بانر الشفق القطبي (Aurora Borealis)",
+        "price": 8000,
+        "description": "أضواء الأورورا الخضراء والبنفسجية المتراقصة في سماء القطب.",
+        "emoji": "🌌",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "🏮 بانر ليالي طوكيو (Tokyo Neon Nights)",
+        "price": 9500,
+        "description": "أزقة طوكيو المضيئة بالفوانيس التقليدية ولوحات النيون الساحرة.",
+        "emoji": "🏮",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "🌊 بانر أعماق المحيط (Deep Ocean Waves)",
+        "price": 7500,
+        "description": "أمواج المحيط الزرقاء الهادئة وأعماق المياه النقية.",
+        "emoji": "🌊",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "🏜️ بانر الصحراء القمرية (Desert Starlight)",
+        "price": 8500,
+        "description": "كثبان رملية ذهبية تحت قبة سماء مرصعة بالنجوم اللامعة.",
+        "emoji": "🏜️",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "⚔️ بانر الساموراي الملحمي (Epic Samurai)",
+        "price": 14000,
+        "description": "بانر بطولي مستوحى من دروع الساموراي ونصل السيوف الأسطورية.",
+        "emoji": "⚔️",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "🔮 بانر البلورات السحرية (Crystal Caverns)",
+        "price": 11000,
+        "description": "بلورات كريستالية مشعة بطاقة سحرية غامضة في كهوف نادرة.",
+        "emoji": "🔮",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1519751138087-5bf79df62d5b?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "🌆 بانر السنثويف والريترو (Synthwave 80s)",
+        "price": 10500,
+        "description": "خطوط أفق ثمانينية بألوان البنفسجي والوردي والمربعات الرقمية.",
+        "emoji": "🌆",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "🌑 بانر خسوف القمر الدموي (Blood Moon Eclipse)",
+        "price": 16000,
+        "description": "قمر أحمر دموي في ليلة خسوف أسطورية تحبس الأنفاس.",
+        "emoji": "🌑",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1532693322450-2cb5c511067d?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "🌲 بانر الغابة الضبابية (Misty Mystic Forest)",
+        "price": 7000,
+        "description": "أشجار الصنوبر الشامخة وسط ضباب الصباح الهادئ والنقي.",
+        "emoji": "🌲",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1448375240586-882707db888b?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "🕹️ بانر البكسل آرت (Retro Pixel Horizon)",
+        "price": 9000,
+        "description": "مشهد بكسل كلاسيكي مستوحى من ألعاب الأركيد والريترو جيمز.",
+        "emoji": "🕹️",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "🪐 بانر حلقات زحل (Saturn Rings)",
+        "price": 13000,
+        "description": "دوران حلقات كوكب زحل الرائعة في الفضاء السحيق.",
+        "emoji": "🪐",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1614728894747-a83421e2b9c9?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "❄️ بانر الجليد الأزلي (Frozen Glacier)",
+        "price": 8500,
+        "description": "جبال جليدية متلألئة تحت أشعة الشمس القطبية النقية.",
+        "emoji": "❄️",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "🏙️ بانر ناطحات السحاب المطرية (Rainy City Skyline)",
+        "price": 9000,
+        "description": "أفق المدينة الحديثة تحت قطرات المطر وأضواء الشوارع المنعكسة.",
+        "emoji": "🏙️",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1477959858617-67f30bc75b82?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "🦋 بانر الفراشات المضيئة (Luminous Butterflies)",
+        "price": 11500,
+        "description": "فراشات مشعة بضوء حيوي ساحر في ليلة هادئة.",
+        "emoji": "🦋",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1526336024174-e58f5cdd8e13?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "🌋 بانر الحمم البركانية (Volcanic Fury)",
+        "price": 15500,
+        "description": "طاقة الحمم المتوهجة والشرار المتطاير من فوهة البركان.",
+        "emoji": "🌋",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1508873696983-2df5703bc20d?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "🍂 بانر الخريف الذهبي (Golden Autumn Leaves)",
+        "price": 6500,
+        "description": "أوراق الخريف المتساقطة بألوان ذهبية وبرتقالية دافئة.",
+        "emoji": "🍂",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "💻 بانر شفرات الماتريكس (Matrix Digital Rain)",
+        "price": 12000,
+        "description": "شلال من الشفرات البرمجية والأكواد الخضراء المشفرة.",
+        "emoji": "💻",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "🏰 بانر القلعة الخيالية (Fantasy Sky Castle)",
+        "price": 18000,
+        "description": "قلعة أسطورية محلقة فوق الغيوم في عالم الفانتازيا الساحر.",
+        "emoji": "🏰",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1514565131-fce0801e5785?w=1000&auto=format&fit=crop&q=80"
+    },
+    {
+        "name": "💎 بانر الألماس الملكي (Royal Diamond Lux)",
+        "price": 25000,
+        "description": "انعكاسات ألماسة نادرة مشعة ببريق وفخامة فائقة.",
+        "emoji": "💎",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1000&auto=format&fit=crop&q=80"
     }
 ]
 

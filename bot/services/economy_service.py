@@ -22,6 +22,9 @@ class EconomyService:
         # In-memory cooldown tracking for message activity: {user_id: datetime}
         self._msg_cooldowns: Dict[int, datetime] = {}
 
+    async def get_wallet(self, user_id: int):
+        return await self.eco_repo.get_or_create_wallet(user_id)
+
     async def get_balance(self, user_id: int) -> Tuple[int, int, int]:
         wallet = await self.eco_repo.get_or_create_wallet(user_id)
         return wallet.balance, wallet.bank_balance, (wallet.balance + wallet.bank_balance)
