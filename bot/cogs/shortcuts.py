@@ -150,6 +150,73 @@ class ShortcutPurgeModal(ui.Modal, title="🧹 مسح الرسائل"):
         except Exception as e:
             await interaction.followup.send(embed=EmbedBuilder.error("خطأ", f"فشل المسح: {e}"), ephemeral=True)
 
+class ShortcutDeleteWarnModal(ui.Modal, title="🗑️ حذف تحذير معين"):
+    warning_id = ui.TextInput(label="رقم التحذير (ID)", placeholder="مثال: 1 أو 2 أو 3", required=True)
+    reason = ui.TextInput(label="سبب الحذف / الإلغاء", placeholder="اكتب سبب حذف التحذير...", default="حذف عبر اختصار الأوامر", required=False)
+
+    def __init__(self, target_member: discord.Member):
+        super().__init__()
+        self.target_member = target_member
+
+    async def on_submit(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        try:
+            local_id = int(self.warning_id.value.strip())
+        except ValueError:
+            await interaction.followup.send("❌ يرجى كتابة رقم تحذير صحيح.", ephemeral=True)
+            return
+
+        async with AsyncSessionLocal() as session:
+            service = WarningService(session)
+            removed = await service.remove_warning(
+                guild_id=interaction.guild.id,
+                user_id=self.target_member.id,
+                local_id=local_id,
+                remover_id=interaction.user.id,
+                reason=self.reason.value or "حذف عبر اختصار الأوامر"
+            )
+            if removed:
+                await interaction.followup.send(
+                    embed=EmbedBuilder.success(
+                        "تم حذف التحذير",
+                        f"✅ تم بنجاح حذف التحذير رقم **`#{local_id}`** للعضو {self.target_member.mention}."
+                    ),
+                    ephemeral=True
+                )
+            else:
+                await interaction.followup.send(
+                    embed=EmbedBuilder.error(
+                        "غير موجود",
+                        f"❌ لم يتم العثور على تحذير بالرقم **`#{local_id}`** للعضو {self.target_member.mention}."
+                    ),
+                    ephemeral=True
+                )
+
+class ShortcutMoveVoiceChannelView(ui.View):
+    """View to select target voice channel for moving member."""
+    def __init__(self, target_member: discord.Member, author: discord.Member):
+        super().__init__(timeout=90)
+        self.target_member = target_member
+        self.author = author
+
+    @ui.select(cls=ui.ChannelSelect, placeholder="اختر الروم الصوتي المراد نقل العضو إليه...", channel_types=[discord.ChannelType.voice])
+    async def select_voice_channel(self, interaction: discord.Interaction, select: ui.ChannelSelect):
+        if interaction.user.id != self.author.id:
+            await interaction.response.send_message("❌ هذا الخيار مخصص لمن طلب الاختصار!", ephemeral=True)
+            return
+
+        target_channel = select.values[0]
+        await interaction.response.defer(ephemeral=True)
+        async with AsyncSessionLocal() as session:
+            service = VoiceService(session)
+            count, errs = await service.move_members(
+                interaction.guild, interaction.user, target_channel, member=self.target_member, reason="Shortcut Voice Move"
+            )
+            if count > 0:
+                await interaction.followup.send(f"✅ تم نقل {self.target_member.mention} إلى الروم الصوتي {target_channel.mention} بنجاح.", ephemeral=True)
+            else:
+                await interaction.followup.send(f"❌ فشل النقل: {', '.join(errs)}", ephemeral=True)
+
 class ShortcutActionMemberSelectView(ui.View):
     """View to select the target member when an action shortcut trigger is fired."""
     def __init__(self, action: str, author: discord.Member):
@@ -174,26 +241,54 @@ class ShortcutActionMemberSelectView(ui.View):
             await interaction.response.send_modal(ShortcutWarnModal(member))
         elif self.action == "timeout":
             await interaction.response.send_modal(ShortcutTimeoutModal(member))
+        elif self.action == "untimeout":
+            await interaction.response.defer(ephemeral=True)
+            try:
+                await member.timeout(None, reason=f"فك التايم أوت بواسطة الاختصار | المشرف: {interaction.user}")
+                await interaction.followup.send(embed=EmbedBuilder.success("تم فك العزل", f"✅ تم فك التايم أوت (العزل) عن {member.mention} بنجاح."), ephemeral=True)
+            except discord.Forbidden:
+                await interaction.followup.send(embed=EmbedBuilder.error("خطأ الصلاحية", "❌ لا يمتلك البوت صلاحية كافية لفك التايم عن هذا العضو."), ephemeral=True)
+            except Exception as e:
+                await interaction.followup.send(embed=EmbedBuilder.error("خطأ", f"❌ حدث خطأ: {e}"), ephemeral=True)
         elif self.action == "kick":
             await interaction.response.send_modal(ShortcutKickModal(member))
         elif self.action == "ban":
             await interaction.response.send_modal(ShortcutBanModal(member))
+        elif self.action == "delete_warn":
+            await interaction.response.send_modal(ShortcutDeleteWarnModal(member))
         elif self.action == "voice_mute":
+            await interaction.response.defer(ephemeral=True)
             async with AsyncSessionLocal() as session:
                 service = VoiceService(session)
                 count, errs = await service.set_mute_state(interaction.guild, interaction.user, True, member=member, reason="Shortcut Mute")
                 if count > 0:
-                    await interaction.response.send_message(f"✅ تم كتم صوت {member.mention} بنجاح.", ephemeral=True)
+                    await interaction.followup.send(f"✅ تم كتم صوت {member.mention} بنجاح.", ephemeral=True)
                 else:
-                    await interaction.response.send_message(f"❌ فشل: {', '.join(errs)}", ephemeral=True)
+                    await interaction.followup.send(f"❌ فشل: {', '.join(errs)}", ephemeral=True)
+        elif self.action == "voice_unmute":
+            await interaction.response.defer(ephemeral=True)
+            async with AsyncSessionLocal() as session:
+                service = VoiceService(session)
+                count, errs = await service.set_mute_state(interaction.guild, interaction.user, False, member=member, reason="Shortcut Unmute")
+                if count > 0:
+                    await interaction.followup.send(f"✅ تم فك كتم صوت {member.mention} بنجاح.", ephemeral=True)
+                else:
+                    await interaction.followup.send(f"❌ فشل: {', '.join(errs)}", ephemeral=True)
+        elif self.action == "voice_move":
+            if not member.voice or not member.voice.channel:
+                await interaction.response.send_message(f"❌ العضو {member.mention} ليس متواجدًا في أي روم صوتي لنقله!", ephemeral=True)
+                return
+            view = ShortcutMoveVoiceChannelView(target_member=member, author=self.author)
+            await interaction.response.send_message(f"اختر الروم الصوتي لنقل {member.mention}:", view=view, ephemeral=True)
         elif self.action == "voice_disconnect":
+            await interaction.response.defer(ephemeral=True)
             async with AsyncSessionLocal() as session:
                 service = VoiceService(session)
                 count, errs = await service.disconnect_members(interaction.guild, interaction.user, member=member, reason="Shortcut Disconnect")
                 if count > 0:
-                    await interaction.response.send_message(f"✅ تم فصل {member.mention} من الروم الصوتي بنجاح.", ephemeral=True)
+                    await interaction.followup.send(f"✅ تم فصل {member.mention} من الروم الصوتي بنجاح.", ephemeral=True)
                 else:
-                    await interaction.response.send_message(f"❌ فشل: {', '.join(errs)}", ephemeral=True)
+                    await interaction.followup.send(f"❌ فشل: {', '.join(errs)}", ephemeral=True)
 
 # --- SHORTCUT COG ---
 
@@ -265,14 +360,18 @@ class ShortcutsCog(commands.Cog):
             # Execute / Prompt the Shortcut Action
             action = shortcut.target_action.lower()
 
-            if action in ["warn", "timeout", "kick", "ban", "voice_mute", "voice_disconnect"]:
+            if action in ["warn", "timeout", "untimeout", "kick", "ban", "delete_warn", "voice_mute", "voice_unmute", "voice_disconnect", "voice_move"]:
                 action_names = {
                     "warn": ("⚠️ إصدار تحذير سريع", "اختر العضو لإدخال سبب التحذير ورابط الدليل:"),
                     "timeout": ("⏱️ عزل مؤقت (Timeout)", "اختر العضو لإدخال المدة والسبب ورابط الدليل:"),
+                    "untimeout": ("⏱️ فك العزل المؤقت (Untimeout)", "اختر العضو لفك التايم أوت عنه:"),
                     "kick": ("👢 طرد عضو", "اختر العضو لإدخال سبب الطرد ورابط الدليل:"),
                     "ban": ("🔨 حظر عضو", "اختر العضو لإدخال سبب الحظر ورابط الدليل:"),
+                    "delete_warn": ("🗑️ حذف تحذير معين", "اختر العضو لإدخال رقم التحذير المراد حذفه:"),
                     "voice_mute": ("🔇 كتم صوت", "اختر العضو لكتم صوته:"),
+                    "voice_unmute": ("🔊 فك كتم الصوت", "اختر العضو لفك كتم صوته:"),
                     "voice_disconnect": ("🔌 فصل من الصوت", "اختر العضو لفصله من الروم الصوتي:"),
+                    "voice_move": ("🎙️ نقل عضو لروم صوتي", "اختر العضو المراد نقله إلى روم صوتي آخر:"),
                 }
                 title, desc = action_names.get(action, ("⚡ اختصار إداري", "اختر العضو المطلوب:"))
                 embed = discord.Embed(
@@ -389,13 +488,17 @@ class ShortcutsCog(commands.Cog):
     @app_commands.choices(action=[
         app_commands.Choice(name="تحذير (Warn + Proof Modal)", value="warn"),
         app_commands.Choice(name="عزل / كتم شات (Timeout + Proof Modal)", value="timeout"),
+        app_commands.Choice(name="فك العزل / فك تايم أوت (Untimeout)", value="untimeout"),
         app_commands.Choice(name="طرد (Kick + Proof Modal)", value="kick"),
         app_commands.Choice(name="حظر (Ban + Proof Modal)", value="ban"),
         app_commands.Choice(name="مسح رسائل (Purge Modal)", value="purge"),
         app_commands.Choice(name="قفل القناة (Lock Channel)", value="lock"),
         app_commands.Choice(name="فتح القناة (Unlock Channel)", value="unlock"),
+        app_commands.Choice(name="حذف تحذير معين (Delete Specific Warn)", value="delete_warn"),
         app_commands.Choice(name="كتم صوت (Voice Mute)", value="voice_mute"),
+        app_commands.Choice(name="فك كتم صوت (Voice Unmute)", value="voice_unmute"),
         app_commands.Choice(name="فصل من الصوت (Voice Disconnect)", value="voice_disconnect"),
+        app_commands.Choice(name="نقل عضو لروم صوتي (Voice Move)", value="voice_move"),
         app_commands.Choice(name="عرض البروفايل (Profile)", value="profile"),
         app_commands.Choice(name="عرض الرصيد (Balance)", value="balance"),
         app_commands.Choice(name="فتح متجر البانرات (Banner Shop)", value="shop"),

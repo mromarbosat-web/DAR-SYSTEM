@@ -507,11 +507,20 @@ class MemberSelectorView(ui.View):
                 await interaction.response.send_message("يجب اختيار عضو متواجد في السيرفر!", ephemeral=True)
                 return
 
-        from bot.cogs.shortcuts import ShortcutWarnModal, ShortcutTimeoutModal, ShortcutKickModal, ShortcutBanModal
+        from bot.cogs.shortcuts import ShortcutWarnModal, ShortcutTimeoutModal, ShortcutKickModal, ShortcutBanModal, ShortcutDeleteWarnModal
         if self.action == "warn":
             await interaction.response.send_modal(ShortcutWarnModal(member))
         elif self.action == "timeout":
             await interaction.response.send_modal(ShortcutTimeoutModal(member))
+        elif self.action == "untimeout":
+            await interaction.response.defer(ephemeral=True)
+            try:
+                await member.timeout(None, reason=f"فك التايم أوت بواسطة لوحة التحكم | المشرف: {interaction.user}")
+                await interaction.followup.send(f"✅ تم فك التايم أوت عن {member.mention} بنجاح.", ephemeral=True)
+            except Exception as e:
+                await interaction.followup.send(f"❌ فشل فك التايم: {e}", ephemeral=True)
+        elif self.action == "delete_warn":
+            await interaction.response.send_modal(ShortcutDeleteWarnModal(member))
         elif self.action == "kick":
             await interaction.response.send_modal(ShortcutKickModal(member))
         elif self.action == "ban":
@@ -527,6 +536,13 @@ class MemberSelectorView(ui.View):
                 service = VoiceService(session)
                 count, errs = await service.set_mute_state(interaction.guild, interaction.user, True, member=member, reason="CP Mute")
                 if count > 0: await interaction.followup.send(f"✅ تم كتم صوت {member.mention}.", ephemeral=True)
+                else: await interaction.followup.send(f"❌ فشل: {', '.join(errs)}", ephemeral=True)
+        elif self.action == "voice_unmute":
+            await interaction.response.defer(ephemeral=True)
+            async with AsyncSessionLocal() as session:
+                service = VoiceService(session)
+                count, errs = await service.set_mute_state(interaction.guild, interaction.user, False, member=member, reason="CP Unmute")
+                if count > 0: await interaction.followup.send(f"✅ تم فك كتم صوت {member.mention}.", ephemeral=True)
                 else: await interaction.followup.send(f"❌ فشل: {', '.join(errs)}", ephemeral=True)
         elif self.action == "voice_disconnect":
             await interaction.response.defer(ephemeral=True)
