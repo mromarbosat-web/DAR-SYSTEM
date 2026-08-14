@@ -23,7 +23,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     nodejs \
     npm \
     fonts-noto-core \
-    fonts-noto-arabic \
     fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 
