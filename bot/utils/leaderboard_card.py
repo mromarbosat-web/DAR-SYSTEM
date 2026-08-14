@@ -14,7 +14,7 @@ except ImportError:
     PIL_AVAILABLE = False
     logger.warning("Pillow is not installed. Leaderboard will fall back to embed display.")
 
-from bot.utils.card_generator import get_system_font, fetch_image, make_circle_avatar
+from bot.utils.card_generator import get_system_font, get_latin_font, fetch_image, make_circle_avatar
 
 def format_activity_score(activity_type: str, score: int) -> str:
     """Formats raw score into an English activity string."""
@@ -98,16 +98,16 @@ async def generate_leaderboard_card(
     draw = ImageDraw.Draw(card)
 
     # Fonts (English & Unicode support)
-    font_title = get_system_font(32, bold=True)
-    font_subtitle = get_system_font(13, bold=True)
-    font_podium_name = get_system_font(19, bold=True)
-    font_podium_lvl = get_system_font(13, bold=True)
-    font_podium_xp = get_system_font(15, bold=True)
-    font_rank_tag = get_system_font(15, bold=True)
-    font_list_name = get_system_font(18, bold=True)
-    font_list_lvl = get_system_font(13, bold=True)
-    font_list_xp = get_system_font(15, bold=True)
-    font_footer = get_system_font(13, bold=False)
+    font_title = get_latin_font(32, bold=True)
+    font_subtitle = get_latin_font(13, bold=True)
+    font_podium_name = get_latin_font(19, bold=True)
+    font_podium_lvl = get_latin_font(13, bold=True)
+    font_podium_xp = get_latin_font(15, bold=True)
+    font_rank_tag = get_latin_font(15, bold=True)
+    font_list_name = get_latin_font(18, bold=True)
+    font_list_lvl = get_latin_font(13, bold=True)
+    font_list_xp = get_latin_font(15, bold=True)
+    font_footer = get_latin_font(13, bold=False)
 
     # 2. Header Section
     header_y = 44

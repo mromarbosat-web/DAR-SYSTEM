@@ -67,6 +67,25 @@ def get_system_font(size: int, bold: bool = False, italic: bool = False) -> Opti
     except Exception:
         return None
 
+def get_latin_font(size: int, bold: bool = False, italic: bool = False) -> Optional[ImageFont.ImageFont]:
+    """Safely retrieves robust Latin/English TTF font (DejaVuSans / LiberationSans) for error-free rendering of numbers, usernames, and English text."""
+    if not PIL_AVAILABLE:
+        return None
+    font_candidates = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else ("/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf" if italic else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else ("/usr/share/fonts/truetype/liberation/LiberationSans-Italic.ttf" if italic else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"),
+        "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf" if bold else ("/usr/share/fonts/truetype/freefont/FreeSansOblique.ttf" if italic else "/usr/share/fonts/truetype/freefont/FreeSans.ttf"),
+        "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf",
+        "arial.ttf"
+    ]
+    for path in font_candidates:
+        try:
+            if os.path.exists(path) or not os.path.isabs(path):
+                return ImageFont.truetype(path, size)
+        except Exception:
+            continue
+    return get_system_font(size, bold, italic)
+
 async def fetch_image(url: str) -> Optional[bytes]:
     """Fetches image bytes from URL asynchronously."""
     if not url:
@@ -188,8 +207,8 @@ async def generate_profile_card(
 
     # Fonts
     font_name = get_system_font(23, bold=True)
-    font_medium = get_system_font(16, bold=True)
-    font_small = get_system_font(13, bold=False)
+    font_medium = get_latin_font(16, bold=True)
+    font_small = get_latin_font(13, bold=False)
     font_label = get_system_font(12, bold=True)
     font_bio = get_system_font(14, bold=False)
 
