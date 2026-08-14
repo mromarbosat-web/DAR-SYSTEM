@@ -47,54 +47,40 @@ class ProfileService:
         rank = await self.profile_repo.get_user_rank(member.id)
 
         level, cur_xp, needed_xp, progress = calculate_level_info(profile.xp)
-        xp_bar = generate_xp_bar(progress)
+        xp_bar = generate_xp_bar(progress, length=8)
 
+        total_balance = wallet.balance + wallet.bank_balance
+
+        # Clean, streamlined, elegant profile embed with avatar integrated at top right thumbnail
         embed = discord.Embed(
-            title=f"👤 الملف الشخصي | {member.display_name}",
-            color=discord.Color.from_rgb(138, 43, 226)
+            title=f"👤 الملف الشخصي • {member.display_name}",
+            description=f"💬 **الحالة:** *{profile.bio}*",
+            color=discord.Color.from_rgb(114, 137, 218)
         )
         
-        # User Avatar
+        # User Avatar integrated directly in the profile card
         embed.set_thumbnail(url=member.display_avatar.url)
 
-        # Equipped Banner
-        if profile.equipped_banner_url:
-            embed.set_image(url=profile.equipped_banner_url)
-
-        # Fields
-        total_balance = wallet.balance + wallet.bank_balance
         embed.add_field(
-            name="💰 رصيد الأورا (Aura Balance)",
-            value=f"• المحفظة: `{wallet.balance:,}` {settings.CURRENCY_EMOJI} {settings.CURRENCY_NAME}\n• البنك: `{wallet.bank_balance:,}` {settings.CURRENCY_EMOJI}\n• الإجمالي: **`{total_balance:,}` {settings.CURRENCY_NAME}**",
+            name="⭐ المستوى والخبرة",
+            value=f"• المستوى: **`{level}`** | الترتيب: **`#{rank}`**\n• التقدم: `{cur_xp:,}` / `{needed_xp:,}` XP\n• {xp_bar}",
             inline=False
         )
 
         embed.add_field(
-            name="⭐ المستوى ونقاط الخبرة (Level & XP)",
-            value=f"• المستوى (Level): **`{level}`**\n• الترتيب (Rank): **`#{rank}`**\n• نقاط الخبرة: `{cur_xp:,}` / `{needed_xp:,}` XP (الإجمالي: `{profile.xp:,}`)\n• التقدم: {xp_bar}",
-            inline=False
-        )
-
-        embed.add_field(
-            name="💬 الحالة الشخصية (Custom Status)",
-            value=f"_{profile.bio}_\n*(تغيير الحالة متاح بـ 2,000 أورا)*",
-            inline=False
-        )
-
-        embed.add_field(
-            name="🖼️ البانر المجهز (Equipped Banner)",
-            value=f"**{profile.equipped_banner_name}** *(متوفر بالمزيد في المتجر)*",
+            name=f"✨ رصيد {settings.CURRENCY_NAME}",
+            value=f"• المحفظة: `{wallet.balance:,}` {settings.CURRENCY_EMOJI}\n• البنك: `{wallet.bank_balance:,}` {settings.CURRENCY_EMOJI}\n• الإجمالي: **`{total_balance:,}` {settings.CURRENCY_NAME}**",
             inline=True
         )
 
         embed.add_field(
-            name="📊 إحصائيات",
-            value=f"• الرسائل: `{profile.messages_count:,}`\n• انضم في: <t:{int(member.joined_at.timestamp()) if member.joined_at else 0}:R>",
+            name="🖼️ البانر المجهز",
+            value=f"**{profile.equipped_banner_name}**\n*(تصفح المتجر للتبديل)*",
             inline=True
         )
 
         embed.set_footer(
-            text=f"المعرف: {member.id} • Security & Aura Bot",
+            text=f"المعرف: {member.id} • انضم: {member.joined_at.strftime('%Y-%m-%d') if member.joined_at else 'غير معروف'}",
             icon_url=member.guild.icon.url if member.guild and member.guild.icon else None
         )
 

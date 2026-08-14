@@ -1,16 +1,17 @@
 import discord
-from discord import app_commands
+from discord import app_commands, ui
 from discord.ext import commands
 from typing import Optional, List
 from bot.config.settings import settings
 from bot.database.connection import AsyncSessionLocal
 from bot.services.profile_service import ProfileService
 from bot.services.shop_service import ShopService
+from bot.database.models.economy import ShopProduct, UserInventory
 from bot.utils.embeds import EmbedBuilder
 from bot.database.repositories.profile_repository import calculate_level_info, generate_xp_bar
 
-class ChangeBioModal(discord.ui.Modal, title="✏️ تعديل الحالة الشخصية (2,000 أورا)"):
-    new_bio = discord.ui.TextInput(
+class ChangeBioModal(ui.Modal, title="✏️ تعديل الحالة الشخصية (2,000 أورا)"):
+    new_bio = ui.TextInput(
         label="اكتب حالتك الجديدة (Custom Status)",
         style=discord.TextStyle.paragraph,
         placeholder="أدخل حالتك أو حكمتك المميزة هنا...",
@@ -34,107 +35,159 @@ class ChangeBioModal(discord.ui.Modal, title="✏️ تعديل الحالة ا�
             else:
                 await interaction.followup.send(embed=EmbedBuilder.error("فشل التحديث", msg), ephemeral=True)
 
-class BannerSelect(discord.ui.Select):
-    def __init__(self, banners: list, target_member: discord.Member):
-        options = []
-        for b in banners[:25]:
-            options.append(
-                discord.SelectOption(
-                    label=b.name[:100],
-                    value=str(b.product_id),
-                    description=f"بانر رقم #{b.product_id}",
-                    emoji="🖼️"
-                )
-            )
-        super().__init__(
-            placeholder="اختر البانر الذي ترغب بتجهيزه لملفك الشخصي...",
-            min_values=1,
-            max_values=1,
-            options=options
-        )
-        self.target_member = target_member
+class BannerCarouselView(ui.View):
+    """Interactive carousel view for viewing and buying profile banners."""
+    def __init__(self, banners: List[ShopProduct], user_id: int, initial_index: int = 0):
+        super().__init__(timeout=180)
+        self.banners = banners
+        self.user_id = user_id
+        self.current_index = initial_index
+        self.update_buttons()
 
-    async def callback(self, interaction: discord.Interaction):
-        if interaction.user.id != self.target_member.id:
-            await interaction.response.send_message("❌ هذا الخيار مخصص لصاحب الملف الشخصي فقط!", ephemeral=True)
-            return
+    def update_buttons(self):
+        self.prev_btn.disabled = self.current_index <= 0
+        self.next_btn.disabled = self.current_index >= len(self.banners) - 1
 
-        product_id = int(self.values[0])
-        await interaction.response.defer(ephemeral=True)
+    async def get_current_embed(self, user_id: int) -> discord.Embed:
+        if not self.banners:
+            return EmbedBuilder.info("متجر البانرات", "لا توجد بانرات متاحة حاليًا.")
+
+        banner = self.banners[self.current_index]
+
+        # Check user ownership
         async with AsyncSessionLocal() as session:
             service = ProfileService(session)
-            success, msg = await service.equip_banner(interaction.user.id, product_id)
+            user_banners = await service.get_user_banners(user_id)
+            profile = await service.get_profile(user_id)
+            owned_ids = [b.product_id for b in user_banners]
+            is_owned = banner.product_id in owned_ids
+            is_equipped = profile.equipped_banner_id == banner.product_id
+
+        status_text = "⭐ **مجهز حالياً لبروفايلك**" if is_equipped else ("✅ **مملوك في حقيبتك**" if is_owned else "🛒 **غير مملوك**")
+
+        embed = discord.Embed(
+            title=f"🖼️ متجر البانرات | {banner.emoji} {banner.name}",
+            description=f"**الوصف:** {banner.description}",
+            color=discord.Color.from_rgb(138, 43, 226)
+        )
+        embed.add_field(name="🆔 معرف البانر (ID)", value=f"`#{banner.product_id}`", inline=True)
+        embed.add_field(name="💰 السعر", value=f"`{banner.price:,}` {settings.CURRENCY_NAME} {settings.CURRENCY_EMOJI}", inline=True)
+        embed.add_field(name="📦 حالة الامتلاك", value=status_text, inline=True)
+
+        if banner.data:
+            embed.set_image(url=banner.data)
+
+        embed.set_footer(
+            text=f"بانر {self.current_index + 1} من {len(self.banners)} • استخدم الأسهم للتنقل والشراء المباشر"
+        )
+        return embed
+
+    @ui.button(label="السابق", style=discord.ButtonStyle.secondary, emoji="⬅️", row=0)
+    async def prev_btn(self, interaction: discord.Interaction, button: ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ يمكنك استخدام أزرار المتجر الخاصة بك فقط!", ephemeral=True)
+            return
+        if self.current_index > 0:
+            self.current_index -= 1
+            self.update_buttons()
+            embed = await self.get_current_embed(interaction.user.id)
+            await interaction.response.edit_message(embed=embed, view=self)
+
+    @ui.button(label="شراء هذا البانر", style=discord.ButtonStyle.success, emoji="🛒", row=0)
+    async def buy_btn(self, interaction: discord.Interaction, button: ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ يمكنك استخدام أزرار المتجر الخاصة بك فقط!", ephemeral=True)
+            return
+
+        banner = self.banners[self.current_index]
+        await interaction.response.defer(ephemeral=True)
+
+        async with AsyncSessionLocal() as session:
+            shop_service = ShopService(session)
+            member = interaction.guild.get_member(interaction.user.id) or interaction.user
+            success, msg, prod = await shop_service.buy_product(interaction.guild, member, banner.product_id)
             if success:
-                new_embed = await service.build_profile_embed(self.target_member)
-                await interaction.followup.send(embed=EmbedBuilder.success("تم التجهيز", msg), ephemeral=True)
+                embed = EmbedBuilder.success("تم الشراء بنجاح", msg)
             else:
-                await interaction.followup.send(embed=EmbedBuilder.error("خطأ", msg), ephemeral=True)
+                embed = EmbedBuilder.error("فشل الشراء", msg)
+            await interaction.followup.send(embed=embed, ephemeral=True)
 
-class SelectBannerView(discord.ui.View):
-    def __init__(self, banners: list, target_member: discord.Member):
-        super().__init__(timeout=120)
-        self.add_item(BannerSelect(banners, target_member))
+        # Refresh embed status
+        new_embed = await self.get_current_embed(interaction.user.id)
+        try:
+            await interaction.message.edit(embed=new_embed, view=self)
+        except Exception:
+            pass
 
-class ProfileView(discord.ui.View):
+    @ui.button(label="تجهيز للبروفايل", style=discord.ButtonStyle.primary, emoji="✨", row=0)
+    async def equip_btn(self, interaction: discord.Interaction, button: ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ يمكنك استخدام أزرار المتجر الخاصة بك فقط!", ephemeral=True)
+            return
+
+        banner = self.banners[self.current_index]
+        await interaction.response.defer(ephemeral=True)
+
+        async with AsyncSessionLocal() as session:
+            service = ProfileService(session)
+            success, msg = await service.equip_banner(interaction.user.id, banner.product_id)
+            if success:
+                embed = EmbedBuilder.success("تم التجهيز", msg)
+            else:
+                embed = EmbedBuilder.error("فشل التجهيز", msg)
+            await interaction.followup.send(embed=embed, ephemeral=True)
+
+        new_embed = await self.get_current_embed(interaction.user.id)
+        try:
+            await interaction.message.edit(embed=new_embed, view=self)
+        except Exception:
+            pass
+
+    @ui.button(label="التالي", style=discord.ButtonStyle.secondary, emoji="➡️", row=0)
+    async def next_btn(self, interaction: discord.Interaction, button: ui.Button):
+        if interaction.user.id != self.user_id:
+            await interaction.response.send_message("❌ يمكنك استخدام أزرار المتجر الخاصة بك فقط!", ephemeral=True)
+            return
+        if self.current_index < len(self.banners) - 1:
+            self.current_index += 1
+            self.update_buttons()
+            embed = await self.get_current_embed(interaction.user.id)
+            await interaction.response.edit_message(embed=embed, view=self)
+
+class ProfileView(ui.View):
     def __init__(self, target_member: discord.Member):
         super().__init__(timeout=180)
         self.target_member = target_member
 
-    @discord.ui.button(label="تعديل الحالة (2,000 أورا)", style=discord.ButtonStyle.primary, emoji="✏️")
-    async def edit_bio_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @ui.button(label="تعديل الحالة (2,000 أورا)", style=discord.ButtonStyle.primary, emoji="✏️")
+    async def edit_bio_btn(self, interaction: discord.Interaction, button: ui.Button):
         if interaction.user.id != self.target_member.id:
             await interaction.response.send_message("❌ يمكنك تعديل حالتك الشخصية فقط في ملفك!", ephemeral=True)
             return
         await interaction.response.send_modal(ChangeBioModal(self.target_member))
 
-    @discord.ui.button(label="تبديل البانر", style=discord.ButtonStyle.secondary, emoji="🖼️")
-    async def change_banner_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
-        if interaction.user.id != self.target_member.id:
-            await interaction.response.send_message("❌ هذا الزر مخصص لصاحب الملف فقط!", ephemeral=True)
-            return
-
-        async with AsyncSessionLocal() as session:
-            service = ProfileService(session)
-            banners = await service.get_user_banners(interaction.user.id)
-            if not banners:
-                await interaction.response.send_message(
-                    "❌ أنت لا تملك أي بانرات في حقيبتك حاليًا!\n🛒 يمكنك شراء بانرات مميزة من المتجر بأسعار تبدأ من 10,000 أورا عبر زر 'متجر البانرات'.",
-                    ephemeral=True
-                )
-                return
-
-            view = SelectBannerView(banners, self.target_member)
-            await interaction.response.send_message("🖼️ اختر البانر المراد عرضه في بروفايلك:", view=view, ephemeral=True)
-
-    @discord.ui.button(label="متجر البانرات", style=discord.ButtonStyle.success, emoji="🛒")
-    async def banner_shop_btn(self, interaction: discord.Interaction, button: discord.ui.Button):
+    @ui.button(label="متجر وتخصيص البانرات", style=discord.ButtonStyle.success, emoji="🖼️")
+    async def banner_shop_btn(self, interaction: discord.Interaction, button: ui.Button):
+        await interaction.response.defer(ephemeral=True)
         async with AsyncSessionLocal() as session:
             shop_service = ShopService(session)
             products = await shop_service.list_products(enabled_only=True)
-            banner_prods = [p for p in products if p.type in ["BANNER", "COSMETIC"]]
+            banners = [p for p in products if p.type in ["BANNER", "COSMETIC"]]
 
-            embed = discord.Embed(
-                title=f"🛒 متجر بانرات البروفايل - {settings.CURRENCY_NAME} {settings.CURRENCY_EMOJI}",
-                description="بانرات فخمة ومميزة لتزيين ملفك الشخصي. أسعار البانرات تتراوح بين 10,000 إلى 20,000 أورا:",
-                color=discord.Color.purple()
-            )
+            if not banners:
+                await interaction.followup.send("❌ لا توجد بانرات مسجلة في المتجر حالياً.", ephemeral=True)
+                return
 
-            for b in banner_prods:
-                embed.add_field(
-                    name=f"{b.emoji} {b.name} (معرف: `#{b.product_id}`)",
-                    value=f"• **السعر:** `{b.price:,}` {settings.CURRENCY_NAME}\n• **الوصف:** {b.description}\n• **للشراء:** `/buy product_id:{b.product_id}`",
-                    inline=False
-                )
-
-            embed.set_footer(text="بعد الشراء، يمكنك تجهيز البانر مباشرة عبر زر 'تبديل البانر' أو أمر /setbanner")
-            await interaction.response.send_message(embed=embed, ephemeral=True)
+            carousel = BannerCarouselView(banners, interaction.user.id, 0)
+            embed = await carousel.get_current_embed(interaction.user.id)
+            await interaction.followup.send(embed=embed, view=carousel, ephemeral=True)
 
 class ProfileCog(commands.Cog):
     """Cog for Member Profile, Leveling, XP, and Customization"""
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
-    @app_commands.command(name="profile", description="عرض الملف الشخصي المتكامل مع الرصيد والليفل والبانر والحالة")
+    @app_commands.command(name="profile", description="عرض الملف الشخصي الأنيق مع الرصيد والليفل والبانر والحالة")
     @app_commands.describe(user="العضو المراد استعراض ملفه الشخصي (افتراضياً أنت)")
     async def profile_command(self, interaction: discord.Interaction, user: Optional[discord.Member] = None):
         await interaction.response.defer()
@@ -153,6 +206,22 @@ class ProfileCog(commands.Cog):
     @app_commands.describe(user="العضو المراد استعراض ملفه الشخصي (اختياري)")
     async def arabic_profile_command(self, interaction: discord.Interaction, user: Optional[discord.Member] = None):
         await self.profile_command.callback(self, interaction, user)
+
+    @app_commands.command(name="banners", description="فتح متجر تصفح وشراء البانرات التفاعلي بالصور والأسهم")
+    async def banners_command(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        async with AsyncSessionLocal() as session:
+            shop_service = ShopService(session)
+            products = await shop_service.list_products(enabled_only=True)
+            banners = [p for p in products if p.type in ["BANNER", "COSMETIC"]]
+
+            if not banners:
+                await interaction.followup.send("❌ لا توجد بانرات مسجلة في المتجر حالياً.", ephemeral=True)
+                return
+
+            carousel = BannerCarouselView(banners, interaction.user.id, 0)
+            embed = await carousel.get_current_embed(interaction.user.id)
+            await interaction.followup.send(embed=embed, view=carousel, ephemeral=True)
 
     @app_commands.command(name="setbio", description="تغيير وتخصيص حالتك في الملف الشخصي مقابل 2,000 أورا")
     @app_commands.describe(bio="الحالة الجديدة المراد وضعها (الحد الأقصى 200 حرف)")
@@ -194,7 +263,7 @@ class ProfileCog(commands.Cog):
             rank = await service.profile_repo.get_user_rank(target.id)
 
             level, cur_xp, needed_xp, progress = calculate_level_info(profile.xp)
-            xp_bar = generate_xp_bar(progress, length=12)
+            xp_bar = generate_xp_bar(progress, length=10)
 
             embed = discord.Embed(
                 title=f"⭐ بطاقة المستوى والخبرة | {target.display_name}",

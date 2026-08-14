@@ -28,6 +28,7 @@ class ShopCog(commands.Cog):
                     title=f"🛒 متجر السيرفر - {settings.CURRENCY_NAME}",
                     description="لا توجد منتجات معروضة حاليًا في المتجر. ترقبوا الإضافات القادمة!"
                 )
+                await interaction.followup.send(embed=embed)
             else:
                 fields = []
                 for p in products:
@@ -46,8 +47,31 @@ class ShopCog(commands.Cog):
                     description=f"استخدم أزرار وأوامر الشراء لاقتناء الرتب والمنتجات باستعمال عملتك **{settings.CURRENCY_NAME}**:",
                     fields=fields
                 )
+                
+                # Add Banner Carousel Quick Button
+                class ShopBrowseView(discord.ui.View):
+                    def __init__(self):
+                        super().__init__(timeout=120)
 
-            await interaction.followup.send(embed=embed)
+                    @discord.ui.button(label="🖼️ تصفح متجر البانرات التفاعلي", style=discord.ButtonStyle.primary)
+                    async def open_banners(self, inter: discord.Interaction, button: discord.ui.Button):
+                        from bot.cogs.profile import BannerCarouselView
+                        async with AsyncSessionLocal() as sess:
+                            svc = ShopService(sess)
+                            prods = await svc.list_products(enabled_only=True)
+                            banners = [p for p in prods if p.type in ["BANNER", "COSMETIC"]]
+                            if not banners:
+                                await inter.response.send_message("❌ لا توجد بانرات مسجلة في المتجر حالياً.", ephemeral=True)
+                                return
+                            carousel = BannerCarouselView(banners, inter.user.id, 0)
+                            em = await carousel.get_current_embed(inter.user.id)
+                            await inter.response.send_message(embed=em, view=carousel, ephemeral=True)
+
+                await interaction.followup.send(embed=embed, view=ShopBrowseView())
+
+    @app_commands.command(name="متجر", description="استعراض قائمة معروضات ومنتجات المتجر للعملة")
+    async def arabic_shop_command(self, interaction: discord.Interaction):
+        await self.shop_command.callback(self, interaction)
 
     @app_commands.command(name="buy", description="شراء منتج من المتجر باستخدام الـ ID")
     @app_commands.describe(product_id="رقم معرف المنتج (Product ID)")

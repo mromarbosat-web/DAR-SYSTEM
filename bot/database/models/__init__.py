@@ -9,6 +9,7 @@ from bot.database.models.logging import LogSettings
 from bot.database.models.whitelist import WhitelistedUser, WhitelistedRole, WhitelistedBot
 from bot.database.models.permissions import GuildAdminRole, GuildPermissionRole
 from bot.database.models.economy import Wallet, DailyReward, Transaction, EconomySettings, ShopProduct, UserInventory, Referral, UserProfile
+from bot.database.models.shortcuts import CommandShortcut
 
 __all__ = [
     "Guild",
@@ -37,5 +38,6 @@ __all__ = [
     "UserInventory",
     "Referral",
     "UserProfile",
+    "CommandShortcut",
 ]
 
