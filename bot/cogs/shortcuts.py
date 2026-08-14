@@ -256,6 +256,44 @@ class ShortcutActionMemberSelectView(ui.View):
             await interaction.response.send_modal(ShortcutBanModal(member))
         elif self.action == "delete_warn":
             await interaction.response.send_modal(ShortcutDeleteWarnModal(member))
+        elif self.action in ["warnings", "warns"]:
+            await interaction.response.defer(ephemeral=True)
+            async with AsyncSessionLocal() as session:
+                service = WarningService(session)
+                warnings_list = await service.get_warnings(interaction.guild.id, member.id)
+                if not warnings_list:
+                    await interaction.followup.send(embed=EmbedBuilder.info("سجل التحذيرات", f"✅ لا توجد أي تحذيرات مسجلة للعضو {member.mention}."), ephemeral=True)
+                    return
+
+                status_badges = {
+                    "ACTIVE": "🟢 نشط",
+                    "EXPIRED": "⚪ منتهي",
+                    "REMOVED": "🔴 محذوف",
+                    "VOIDED": "🟡 ملغى"
+                }
+
+                embed = discord.Embed(
+                    title=f"📋 سجل تحذيرات | {member.display_name}",
+                    color=discord.Color.blue(),
+                    timestamp=discord.utils.utcnow()
+                )
+                embed.set_thumbnail(url=member.display_avatar.url)
+
+                for w in warnings_list[:10]:
+                    moderator = interaction.guild.get_member(w.moderator_id)
+                    mod_str = moderator.mention if moderator else f"`{w.moderator_id}`"
+                    status_str = status_badges.get(w.status, w.status)
+                    type_str = "رسمي" if w.warning_type == "formal" else "شفهي"
+                    exp_str = f"<t:{int(w.expires_at.timestamp())}:R>" if w.expires_at else "دائم"
+
+                    embed.add_field(
+                        name=f"#{w.local_id} | ({type_str}) - {status_str}",
+                        value=f"**السبب:** {w.reason}\n**المشرف:** {mod_str}\n**الانتهاء:** {exp_str}\n**التاريخ:** <t:{int(w.created_at.timestamp())}:D>",
+                        inline=False
+                    )
+
+                embed.set_footer(text=f"إجمالي التحذيرات: {len(warnings_list)}")
+                await interaction.followup.send(embed=embed, ephemeral=True)
         elif self.action == "voice_mute":
             await interaction.response.defer(ephemeral=True)
             async with AsyncSessionLocal() as session:
@@ -360,7 +398,7 @@ class ShortcutsCog(commands.Cog):
             # Execute / Prompt the Shortcut Action
             action = shortcut.target_action.lower()
 
-            if action in ["warn", "timeout", "untimeout", "kick", "ban", "delete_warn", "voice_mute", "voice_unmute", "voice_disconnect", "voice_move"]:
+            if action in ["warn", "timeout", "untimeout", "kick", "ban", "delete_warn", "warnings", "warns", "voice_mute", "voice_unmute", "voice_disconnect", "voice_move"]:
                 action_names = {
                     "warn": ("⚠️ إصدار تحذير سريع", "اختر العضو لإدخال سبب التحذير ورابط الدليل:"),
                     "timeout": ("⏱️ عزل مؤقت (Timeout)", "اختر العضو لإدخال المدة والسبب ورابط الدليل:"),
@@ -368,6 +406,8 @@ class ShortcutsCog(commands.Cog):
                     "kick": ("👢 طرد عضو", "اختر العضو لإدخال سبب الطرد ورابط الدليل:"),
                     "ban": ("🔨 حظر عضو", "اختر العضو لإدخال سبب الحظر ورابط الدليل:"),
                     "delete_warn": ("🗑️ حذف تحذير معين", "اختر العضو لإدخال رقم التحذير المراد حذفه:"),
+                    "warnings": ("📋 عرض سجل التحذيرات", "اختر العضو لعرض قائمة تحذيراته (أو اختر نفسك):"),
+                    "warns": ("📋 عرض سجل التحذيرات", "اختر العضو لعرض قائمة تحذيراته (أو اختر نفسك):"),
                     "voice_mute": ("🔇 كتم صوت", "اختر العضو لكتم صوته:"),
                     "voice_unmute": ("🔊 فك كتم الصوت", "اختر العضو لفك كتم صوته:"),
                     "voice_disconnect": ("🔌 فصل من الصوت", "اختر العضو لفصله من الروم الصوتي:"),
@@ -421,7 +461,7 @@ class ShortcutsCog(commands.Cog):
                 embed, card_file = await profile_svc.build_profile_card_file(message.author)
                 view = ProfileView(message.author)
                 if card_file:
-                    await message.reply(embed=embed, file=card_file, view=view)
+                    await message.reply(file=card_file, view=view)
                 else:
                     await message.reply(embed=embed, view=view)
 
@@ -458,13 +498,13 @@ class ShortcutsCog(commands.Cog):
                 else:
                     await message.reply(embed=EmbedBuilder.warning("عذراً", msg))
 
-            elif action == "warnings":
+            elif action in ["warnings", "warns"]:
                 warn_svc = WarningService(session)
-                warnings_list = await warn_svc.list_warnings(message.guild.id, message.author.id)
+                warnings_list = await warn_svc.get_warnings(message.guild.id, message.author.id)
                 if not warnings_list:
                     await message.reply("✅ سجلك نظيف تماماً! لا توجد عليك أي تحذيرات مسجلة.")
                 else:
-                    lines = [f"`#{w.local_id}` - **{w.reason}** (نوع: `{w.type}`) <t:{int(w.created_at.timestamp())}:R>" for w in warnings_list[:10]]
+                    lines = [f"`#{w.local_id}` - **{w.reason}** (نوع: `{w.warning_type}`) <t:{int(w.created_at.timestamp())}:R>" for w in warnings_list[:10]]
                     embed = discord.Embed(
                         title=f"⚠️ سجل تحذيراتك | {message.author.display_name}",
                         description="\n".join(lines),

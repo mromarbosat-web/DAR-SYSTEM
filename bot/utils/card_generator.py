@@ -14,6 +14,28 @@ except ImportError:
     PIL_AVAILABLE = False
     logger.warning("Pillow is not installed. Profile Card will fall back to embed display.")
 
+def get_system_font(size: int, bold: bool = False, italic: bool = False) -> ImageFont.ImageFont:
+    """Safely retrieves available system TTF font or defaults."""
+    if not PIL_AVAILABLE:
+        return None
+    font_candidates = [
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else ("/usr/share/fonts/truetype/liberation/LiberationSans-Italic.ttf" if italic else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"),
+        "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf" if bold else ("/usr/share/fonts/truetype/freefont/FreeSansOblique.ttf" if italic else "/usr/share/fonts/truetype/freefont/FreeSans.ttf"),
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else ("/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf" if italic else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
+        "LiberationSans-Bold.ttf" if bold else "LiberationSans-Regular.ttf",
+        "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf",
+        "arial.ttf"
+    ]
+    for path in font_candidates:
+        try:
+            return ImageFont.truetype(path, size)
+        except Exception:
+            continue
+    try:
+        return ImageFont.load_default()
+    except Exception:
+        return None
+
 async def fetch_image(url: str) -> Optional[bytes]:
     """Fetches image bytes from URL asynchronously."""
     if not url:
@@ -53,18 +75,17 @@ async def generate_profile_card(
     currency_emoji: str = "✨"
 ) -> Optional[io.BytesIO]:
     """
-    Generates a Profile Card PNG:
-    - Banner as background
-    - Member Avatar at top left
-    - Member Display Name
-    - Aura balance
-    - Level, Rank, XP Progress bar
-    - Joined Server Date
+    Generates a high-definition, standalone Profile Card PNG containing:
+    - Equipped Background Banner with sleek glass overlay
+    - User Avatar with circular anti-aliased crop and status indicator badge
+    - Display Name, Username, Join Date & ID
+    - Dedicated Status & Bio panel
+    - Level, Rank, Aura Balance, and XP Progress Bar
     """
     if not PIL_AVAILABLE:
         return None
 
-    card_w, card_h = 800, 320
+    card_w, card_h = 840, 330
 
     # 1. Background Banner
     bg_bytes = await fetch_image(banner_url) if banner_url else None
@@ -73,29 +94,29 @@ async def generate_profile_card(
             bg_image = Image.open(io.BytesIO(bg_bytes)).convert("RGBA")
             bg_image = ImageOps.fit(bg_image, (card_w, card_h), method=Image.Resampling.LANCZOS)
         except Exception:
-            bg_image = Image.new("RGBA", (card_w, card_h), (25, 28, 44, 255))
+            bg_image = Image.new("RGBA", (card_w, card_h), (20, 24, 38, 255))
     else:
-        bg_image = Image.new("RGBA", (card_w, card_h), (25, 28, 44, 255))
+        bg_image = Image.new("RGBA", (card_w, card_h), (20, 24, 38, 255))
 
-    # 2. Add Dark Gradient / Glass Overlay on the banner for high text legibility
+    # 2. Add Sleek Semi-Transparent Glass Overlay (Highlighting the Banner)
     overlay = Image.new("RGBA", (card_w, card_h), (0, 0, 0, 0))
     draw_overlay = ImageDraw.Draw(overlay)
     
-    # Semi-transparent dark rounded container
+    # Outer subtle dark glass framing - allows the banner art to shine through brightly
     draw_overlay.rounded_rectangle(
-        [(15, 15), (card_w - 15, card_h - 15)],
-        radius=20,
-        fill=(12, 14, 24, 195),
-        outline=(114, 137, 218, 120),
+        [(10, 10), (card_w - 10, card_h - 10)],
+        radius=18,
+        fill=(10, 12, 20, 110),
+        outline=(255, 255, 255, 60),
         width=2
     )
 
     card = Image.alpha_composite(bg_image, overlay)
     draw = ImageDraw.Draw(card)
 
-    # 3. Avatar Processing
-    avatar_size = 120
-    avatar_x, avatar_y = 35, 35
+    # 3. Avatar & Status Processing
+    avatar_size = 110
+    avatar_x, avatar_y = 35, 30
     avatar_bytes = await fetch_image(member.display_avatar.url)
     if avatar_bytes:
         try:
@@ -103,7 +124,6 @@ async def generate_profile_card(
             circle_av = make_circle_avatar(raw_av, avatar_size)
             
             # Glowing avatar border
-            border_size = avatar_size + 6
             glow_mask = Image.new("RGBA", (card_w, card_h), (0, 0, 0, 0))
             draw_glow = ImageDraw.Draw(glow_mask)
             draw_glow.ellipse(
@@ -113,78 +133,124 @@ async def generate_profile_card(
             card = Image.alpha_composite(card, glow_mask)
             card.paste(circle_av, (avatar_x, avatar_y), circle_av)
             draw = ImageDraw.Draw(card)
+
+            # Discord Presence Indicator (Online / Idle / DND / Offline)
+            status_colors = {
+                discord.Status.online: (67, 181, 129, 255),    # Green
+                discord.Status.idle: (250, 166, 26, 255),      # Orange/Yellow
+                discord.Status.dnd: (240, 71, 71, 255),        # Red/Crimson
+                discord.Status.offline: (116, 127, 141, 255),  # Gray
+                discord.Status.invisible: (116, 127, 141, 255)
+            }
+            member_status = getattr(member, "status", discord.Status.online)
+            dot_color = status_colors.get(member_status, (67, 181, 129, 255))
+
+            dot_x = avatar_x + avatar_size - 22
+            dot_y = avatar_y + avatar_size - 22
+            dot_r = 12
+            # Dark border around presence dot
+            draw.ellipse([(dot_x - 3, dot_y - 3), (dot_x + dot_r * 2 + 3, dot_y + dot_r * 2 + 3)], fill=(12, 15, 26, 255))
+            draw.ellipse([(dot_x, dot_y), (dot_x + dot_r * 2, dot_y + dot_r * 2)], fill=dot_color)
+
         except Exception as e:
             logger.debug(f"Avatar draw error: {e}")
 
-    # 4. Member Name & Discriminator
-    name_x = avatar_x + avatar_size + 25
-    name_y = 40
-    
-    # We use default PIL font or scalable bitmap
-    try:
-        font_large = ImageFont.truetype("DejaVuSans-Bold.ttf", 26)
-        font_medium = ImageFont.truetype("DejaVuSans-Bold.ttf", 18)
-        font_small = ImageFont.truetype("DejaVuSans.ttf", 14)
-        font_status = ImageFont.truetype("DejaVuSans-Oblique.ttf", 14)
-    except Exception:
-        font_large = ImageFont.load_default()
-        font_medium = font_large
-        font_small = font_large
-        font_status = font_large
+    # Fonts
+    font_name = get_system_font(24, bold=True)
+    font_medium = get_system_font(17, bold=True)
+    font_small = get_system_font(13, bold=False)
+    font_label = get_system_font(12, bold=True)
+    font_bio = get_system_font(14, italic=False)
 
-    # Clean display name
-    clean_name = member.display_name[:20]
-    draw.text((name_x, name_y), clean_name, fill=(255, 255, 255, 255), font=font_large)
+    # 4. Member Name, Tag, and Join Date (With subtle text shadow for crisp contrast over banner)
+    info_x = avatar_x + avatar_size + 25
+    clean_name = member.display_name[:24]
+    draw.text((info_x + 1, 29), clean_name, fill=(0, 0, 0, 200), font=font_name)
+    draw.text((info_x, 28), clean_name, fill=(255, 255, 255, 255), font=font_name)
 
-    # Join date badge
     join_str = member.joined_at.strftime("%Y-%m-%d") if member.joined_at else "Unknown"
-    draw.text((name_x, name_y + 32), f"Joined: {join_str} • ID: {member.id}", fill=(180, 190, 210, 230), font=font_small)
+    username_str = f"@{member.name}" if hasattr(member, "name") else ""
+    info_sub = f"{username_str}  •  Joined: {join_str}  •  ID: {member.id}"
+    draw.text((info_x + 1, 59), info_sub, fill=(0, 0, 0, 180), font=font_small)
+    draw.text((info_x, 58), info_sub, fill=(210, 225, 245, 240), font=font_small)
 
-    # Bio / Status
-    clean_bio = f'"{bio[:50]}..."' if len(bio) > 50 else f'"{bio}"'
-    draw.text((name_x, name_y + 54), clean_bio, fill=(200, 215, 240, 200), font=font_status)
+    # 5. Prominent Glass Status & Bio Box (الحالة)
+    bio_box_x1, bio_box_y1 = info_x, 82
+    bio_box_x2, bio_box_y2 = card_w - 35, 142
+    
+    # Glassy background for bio
+    bio_overlay = Image.new("RGBA", (card_w, card_h), (0, 0, 0, 0))
+    draw_bio_overlay = ImageDraw.Draw(bio_overlay)
+    draw_bio_overlay.rounded_rectangle(
+        [(bio_box_x1, bio_box_y1), (bio_box_x2, bio_box_y2)],
+        radius=10,
+        fill=(14, 18, 30, 150),
+        outline=(255, 255, 255, 50),
+        width=1
+    )
+    card = Image.alpha_composite(card, bio_overlay)
+    draw = ImageDraw.Draw(card)
+    
+    # Status Tag / Header inside the box
+    draw.text((bio_box_x1 + 12, bio_box_y1 + 8), "💬 STATUS / الحالة", fill=(255, 215, 95, 255), font=font_label)
+    
+    # Bio Text
+    display_bio = (bio[:65] + "...") if len(bio) > 65 else (bio if bio else "لا توجد حالة مخصصة بعد")
+    draw.text((bio_box_x1 + 12, bio_box_y1 + 28), f'"{display_bio}"', fill=(240, 245, 255, 255), font=font_bio)
 
-    # 5. Stats Cards (Level, Rank, Aura Balance)
+    # 6. Stats Cards Row (Level & Rank, Aura Balance, XP Progress) with Glassmorphism
+    stat_y1, stat_y2 = 158, 228
+    
+    stat_overlay = Image.new("RGBA", (card_w, card_h), (0, 0, 0, 0))
+    draw_stat_overlay = ImageDraw.Draw(stat_overlay)
+
     # Box 1: Level & Rank
-    draw.rounded_rectangle([(35, 175), (265, 245)], radius=12, fill=(20, 24, 40, 220), outline=(88, 101, 242, 100), width=1)
-    draw.text((48, 185), "LEVEL", fill=(140, 160, 200, 255), font=font_small)
-    draw.text((48, 205), f"Level {level}", fill=(255, 215, 0, 255), font=font_medium)
-    draw.text((170, 185), "RANK", fill=(140, 160, 200, 255), font=font_small)
-    draw.text((170, 205), f"#{rank}", fill=(255, 255, 255, 255), font=font_medium)
-
-    # Box 2: Total Aura Balance
-    draw.rounded_rectangle([(280, 175), (510, 245)], radius=12, fill=(20, 24, 40, 220), outline=(255, 180, 0, 100), width=1)
-    draw.text((295, 185), f"{currency_name.upper()} BALANCE", fill=(255, 200, 80, 255), font=font_small)
-    draw.text((295, 205), f"{total_balance:,} Aura", fill=(255, 255, 255, 255), font=font_medium)
-
+    draw_stat_overlay.rounded_rectangle([(35, stat_y1), (275, stat_y2)], radius=12, fill=(14, 18, 30, 160), outline=(114, 137, 218, 90), width=1)
+    # Box 2: Aura Balance
+    draw_stat_overlay.rounded_rectangle([(290, stat_y1), (535, stat_y2)], radius=12, fill=(14, 18, 30, 160), outline=(255, 190, 40, 90), width=1)
     # Box 3: XP Stats
-    draw.rounded_rectangle([(525, 175), (765, 245)], radius=12, fill=(20, 24, 40, 220), outline=(100, 200, 255, 100), width=1)
-    draw.text((540, 185), "XP PROGRESS", fill=(140, 200, 255, 255), font=font_small)
-    draw.text((540, 205), f"{cur_xp:,} / {needed_xp:,} XP", fill=(255, 255, 255, 255), font=font_medium)
-
-    # 6. XP Progress Bar at the bottom
-    bar_x1, bar_y1 = 35, 265
-    bar_x2, bar_y2 = 765, 285
+    draw_stat_overlay.rounded_rectangle([(550, stat_y1), (805, stat_y2)], radius=12, fill=(14, 18, 30, 160), outline=(80, 210, 255, 90), width=1)
+    
+    # Bottom Progress Bar Container Glass
+    bar_x1, bar_y1 = 35, 248
+    bar_x2, bar_y2 = 805, 274
     bar_w = bar_x2 - bar_x1
+    draw_stat_overlay.rounded_rectangle([(bar_x1, bar_y1), (bar_x2, bar_y2)], radius=10, fill=(14, 18, 30, 175), outline=(255, 255, 255, 40), width=1)
     
-    # Background bar
-    draw.rounded_rectangle([(bar_x1, bar_y1), (bar_x2, bar_y2)], radius=10, fill=(35, 40, 60, 255))
-    
-    # Fill bar
+    card = Image.alpha_composite(card, stat_overlay)
+    draw = ImageDraw.Draw(card)
+
+    # Text inside Stat Boxes
+    # Level & Rank
+    draw.text((48, stat_y1 + 10), "⭐ LEVEL", fill=(170, 190, 230, 255), font=font_small)
+    draw.text((48, stat_y1 + 32), f"Level {level}", fill=(255, 215, 0, 255), font=font_medium)
+    draw.text((170, stat_y1 + 10), "🏆 RANK", fill=(170, 190, 230, 255), font=font_small)
+    draw.text((170, stat_y1 + 32), f"#{rank}", fill=(255, 255, 255, 255), font=font_medium)
+
+    # Aura Balance
+    draw.text((305, stat_y1 + 10), f"✨ {currency_name.upper()} BALANCE", fill=(255, 205, 90, 255), font=font_small)
+    draw.text((305, stat_y1 + 32), f"{total_balance:,} Aura", fill=(255, 255, 255, 255), font=font_medium)
+
+    # XP Progress
+    draw.text((565, stat_y1 + 10), "📊 XP PROGRESS", fill=(160, 220, 255, 255), font=font_small)
+    draw.text((565, stat_y1 + 32), f"{cur_xp:,} / {needed_xp:,} XP", fill=(255, 255, 255, 255), font=font_medium)
+
+    # 7. XP Progress Bar Fill
     fill_w = max(10, int(bar_w * (progress_percent / 100.0)))
     if fill_w > 0:
         draw.rounded_rectangle(
             [(bar_x1, bar_y1), (min(bar_x2, bar_x1 + fill_w), bar_y2)],
             radius=10,
-            fill=(88, 101, 242, 255)
+            fill=(88, 101, 242, 230)
         )
 
-    # Progress text centered on bar
-    prog_text = f"{progress_percent}% to Level {level + 1}"
-    draw.text((bar_x1 + (bar_w // 2) - 50, bar_y1 + 2), prog_text, fill=(255, 255, 255, 230), font=font_small)
+    # Progress text inside the bar
+    prog_text = f"{progress_percent}%  •  {cur_xp:,} / {needed_xp:,} XP to Level {level + 1}"
+    draw.text((bar_x1 + (bar_w // 2) - 80, bar_y1 + 4), prog_text, fill=(255, 255, 255, 245), font=font_small)
 
-    # Convert to BytesIO
+    # 8. Output as BytesIO
     output = io.BytesIO()
     card.convert("RGB").save(output, format="PNG", quality=95)
     output.seek(0)
     return output
+

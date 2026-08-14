@@ -34,8 +34,12 @@ DEFAULT_SHORTCUTS = [
     {"trigger": "رصيد", "action": "balance"},
     {"trigger": "متجر", "action": "shop"},
     {"trigger": "يومي", "action": "daily"},
+    {"trigger": "تحذيرات", "action": "warnings"},
     {"trigger": "تحذيراتي", "action": "warnings"},
     {"trigger": "سجل", "action": "warnings"},
+    {"trigger": "عرض تحذيرات", "action": "warnings"},
+    {"trigger": "سجل تحذيرات", "action": "warnings"},
+    {"trigger": "سجل التحذيرات", "action": "warnings"},
 ]
 
 class ShortcutRepository:

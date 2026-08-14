@@ -201,7 +201,7 @@ class ProfileCog(commands.Cog):
             embed, card_file = await service.build_profile_card_file(target)
             view = ProfileView(target)
             if card_file:
-                await interaction.followup.send(embed=embed, file=card_file, view=view)
+                await interaction.followup.send(file=card_file, view=view)
             else:
                 await interaction.followup.send(embed=embed, view=view)
 

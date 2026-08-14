@@ -521,6 +521,26 @@ class MemberSelectorView(ui.View):
                 await interaction.followup.send(f"❌ فشل فك التايم: {e}", ephemeral=True)
         elif self.action == "delete_warn":
             await interaction.response.send_modal(ShortcutDeleteWarnModal(member))
+        elif self.action in ["warnings", "warns"]:
+            await interaction.response.defer(ephemeral=True)
+            async with AsyncSessionLocal() as session:
+                service = WarningService(session)
+                warnings_list = await service.get_warnings(interaction.guild.id, member.id)
+                if not warnings_list:
+                    await interaction.followup.send(f"✅ لا توجد أي تحذيرات مسجلة للعضو {member.mention}.", ephemeral=True)
+                    return
+                status_badges = {"ACTIVE": "🟢 نشط", "EXPIRED": "⚪ منتهي", "REMOVED": "🔴 محذوف", "VOIDED": "🟡 ملغى"}
+                embed = discord.Embed(title=f"📋 سجل تحذيرات | {member.display_name}", color=discord.Color.blue(), timestamp=discord.utils.utcnow())
+                embed.set_thumbnail(url=member.display_avatar.url)
+                for w in warnings_list[:10]:
+                    mod = interaction.guild.get_member(w.moderator_id)
+                    mod_str = mod.mention if mod else f"`{w.moderator_id}`"
+                    status_str = status_badges.get(w.status, w.status)
+                    type_str = "رسمي" if w.warning_type == "formal" else "شفهي"
+                    exp_str = f"<t:{int(w.expires_at.timestamp())}:R>" if w.expires_at else "دائم"
+                    embed.add_field(name=f"#{w.local_id} | ({type_str}) - {status_str}", value=f"**السبب:** {w.reason}\n**المشرف:** {mod_str}\n**الانتهاء:** {exp_str}\n**التاريخ:** <t:{int(w.created_at.timestamp())}:D>", inline=False)
+                embed.set_footer(text=f"إجمالي التحذيرات: {len(warnings_list)}")
+                await interaction.followup.send(embed=embed, ephemeral=True)
         elif self.action == "kick":
             await interaction.response.send_modal(ShortcutKickModal(member))
         elif self.action == "ban":
