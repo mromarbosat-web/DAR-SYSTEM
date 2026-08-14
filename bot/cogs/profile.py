@@ -198,9 +198,12 @@ class ProfileCog(commands.Cog):
 
         async with AsyncSessionLocal() as session:
             service = ProfileService(session)
-            embed = await service.build_profile_embed(target)
+            embed, card_file = await service.build_profile_card_file(target)
             view = ProfileView(target)
-            await interaction.followup.send(embed=embed, view=view)
+            if card_file:
+                await interaction.followup.send(embed=embed, file=card_file, view=view)
+            else:
+                await interaction.followup.send(embed=embed, view=view)
 
     @app_commands.command(name="بروفايل", description="عرض الملف الشخصي المتكامل مع الرصيد والليفل والبانر")
     @app_commands.describe(user="العضو المراد استعراض ملفه الشخصي (اختياري)")

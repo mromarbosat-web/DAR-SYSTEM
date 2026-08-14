@@ -19,6 +19,23 @@ from bot.database.repositories.shortcut_repository import ShortcutRepository
 from bot.utils.embeds import EmbedBuilder
 from bot.cogs.profile import BannerCarouselView
 
+def build_main_control_embed(guild: discord.Guild, user: discord.Member) -> discord.Embed:
+    embed = discord.Embed(
+        title="🛡️ لوحة التحكم الشاملة | Discord Control Center",
+        description=(
+            "مرحباً بك في لوحة التحكم الإدارية الشاملة والمباشرة.\n"
+            "كافة الأزرار والأقسام أدناه تفاعلية بالكامل للتحكم الفوري في الحماية، الأوتومود، اللوجات، الاقتصاد، واختصارات الأوامر."
+        ),
+        color=discord.Color.from_rgb(88, 101, 242)
+    )
+    embed.add_field(name="🌐 السيرفر", value=f"**{guild.name}**", inline=True)
+    embed.add_field(name="👮 المسؤول", value=user.mention, inline=True)
+    embed.add_field(name="✨ العملة الرسمية", value=f"**{settings.CURRENCY_NAME}** {settings.CURRENCY_EMOJI}", inline=True)
+    embed.set_footer(text="استخدم الأزرار للتنقل والتحكم المباشر")
+    if guild.icon:
+        embed.set_thumbnail(url=guild.icon.url)
+    return embed
+
 class ControlCog(commands.Cog):
     """Cog providing an Interactive Discord-based Control Panel for server management."""
     def __init__(self, bot: commands.Bot):
@@ -27,6 +44,7 @@ class ControlCog(commands.Cog):
     @app_commands.command(name="control", description="فتح لوحة التحكم الإدارية الشاملة والتفاعلية للسيرفر")
     async def control_panel(self, interaction: discord.Interaction):
         """Main entry point for the Discord Control Panel."""
+        await interaction.response.defer(ephemeral=True)
         async with AsyncSessionLocal() as session:
             perm_service = PermissionService(session)
             is_admin = interaction.user.guild_permissions.administrator or \
@@ -34,28 +52,15 @@ class ControlCog(commands.Cog):
                        await perm_service.is_server_admin(interaction.user) or \
                        settings.is_bot_owner(interaction.user.id)
             if not is_admin:
-                await interaction.response.send_message(
+                await interaction.followup.send(
                     embed=EmbedBuilder.error("عذراً", "لا تملك الصلاحية الكافية لفتح لوحة التحكم!"),
                     ephemeral=True
                 )
                 return
 
         view = ControlMainView()
-        embed = discord.Embed(
-            title="🛡️ لوحة التحكم الشاملة | Discord Control Center",
-            description=(
-                "مرحباً بك في لوحة التحكم الإدارية الشاملة والمباشرة.\n"
-                "كافة الأزرار والأقسام أدناه تفاعلية بالكامل للتحكم الفوري في الحماية، الأوتومود، اللوجات، الاقتصاد، واختصارات الأوامر."
-            ),
-            color=discord.Color.from_rgb(88, 101, 242)
-        )
-        embed.add_field(name="🌐 السيرفر", value=f"**{interaction.guild.name}**", inline=True)
-        embed.add_field(name="👮 المسؤول", value=interaction.user.mention, inline=True)
-        embed.add_field(name="✨ العملة الرسمية", value=f"**{settings.CURRENCY_NAME}** {settings.CURRENCY_EMOJI}", inline=True)
-        embed.set_footer(text="استخدم الأزرار للتنقل والتحكم المباشر")
-        embed.set_thumbnail(url=interaction.guild.icon.url if interaction.guild.icon else None)
-
-        await interaction.response.send_message(embed=embed, view=view, ephemeral=True)
+        embed = build_main_control_embed(interaction.guild, interaction.user)
+        await interaction.followup.send(embed=embed, view=view, ephemeral=True)
 
 # --- VIEWS ---
 
@@ -65,38 +70,43 @@ class ControlMainView(ui.View):
 
     @ui.button(label="⚡ اختصارات الأوامر", style=discord.ButtonStyle.primary, emoji="⚡", row=0)
     async def shortcuts_btn(self, interaction: discord.Interaction, button: ui.Button):
+        await interaction.response.defer()
         view = ShortcutsView()
-        await interaction.response.edit_message(embed=view.get_embed(), view=view)
+        await interaction.edit_original_response(embed=view.get_embed(), view=view)
 
     @ui.button(label="🛡️ أنظمة الحماية (Security)", style=discord.ButtonStyle.secondary, emoji="🛡️", row=0)
     async def security_btn(self, interaction: discord.Interaction, button: ui.Button):
+        await interaction.response.defer()
         async with AsyncSessionLocal() as session:
             sec_service = SecurityService(session)
             sec_settings = await sec_service.get_security_settings(interaction.guild.id)
             view = SecurityControlView(sec_settings)
             embed = view.build_embed()
-            await interaction.response.edit_message(embed=embed, view=view)
+            await interaction.edit_original_response(embed=embed, view=view)
 
     @ui.button(label="🤖 الإشراف التلقائي (AutoMod)", style=discord.ButtonStyle.secondary, emoji="🤖", row=1)
     async def automod_btn(self, interaction: discord.Interaction, button: ui.Button):
+        await interaction.response.defer()
         async with AsyncSessionLocal() as session:
             am_service = AutoModService(session)
             am_settings = await am_service.get_automod_settings(interaction.guild.id)
             view = AutoModControlView(am_settings)
             embed = view.build_embed()
-            await interaction.response.edit_message(embed=embed, view=view)
+            await interaction.edit_original_response(embed=embed, view=view)
 
     @ui.button(label="📋 سجلات اللوجات (Logs)", style=discord.ButtonStyle.secondary, emoji="📋", row=1)
     async def logs_btn(self, interaction: discord.Interaction, button: ui.Button):
+        await interaction.response.defer()
         async with AsyncSessionLocal() as session:
             log_service = LogService(session)
             log_settings = await log_service.get_log_settings(interaction.guild.id)
             view = LogsControlView(log_settings)
             embed = view.build_embed()
-            await interaction.response.edit_message(embed=embed, view=view)
+            await interaction.edit_original_response(embed=embed, view=view)
 
     @ui.button(label="💰 نظام أورا والمتجر (Economy)", style=discord.ButtonStyle.secondary, emoji="✨", row=2)
     async def economy_btn(self, interaction: discord.Interaction, button: ui.Button):
+        await interaction.response.defer()
         async with AsyncSessionLocal() as session:
             eco_service = EconomyService(session)
             shop_service = ShopService(session)
@@ -104,7 +114,7 @@ class ControlMainView(ui.View):
             products = await shop_service.list_products(enabled_only=True)
             view = EconomyControlView(count, total, len(products))
             embed = view.build_embed()
-            await interaction.response.edit_message(embed=embed, view=view)
+            await interaction.edit_original_response(embed=embed, view=view)
 
 # --- SECURITY INTERACTIVE CONTROL VIEW ---
 
@@ -174,13 +184,10 @@ class SecurityControlView(ui.View):
 
     @ui.button(label="عودة للقائمة الرئيسية", style=discord.ButtonStyle.danger, emoji="⬅️", row=4)
     async def back_btn(self, interaction: discord.Interaction, button: ui.Button):
+        await interaction.response.defer()
         view = ControlMainView()
-        embed = discord.Embed(
-            title="🛡️ لوحة التحكم الشاملة | Discord Control Center",
-            description="مرحباً بك مجدداً في اللوحة الرئيسية.",
-            color=discord.Color.from_rgb(88, 101, 242)
-        )
-        await interaction.response.edit_message(embed=embed, view=view)
+        embed = build_main_control_embed(interaction.guild, interaction.user)
+        await interaction.edit_original_response(embed=embed, view=view)
 
 # --- AUTOMOD INTERACTIVE CONTROL VIEW ---
 
@@ -244,13 +251,10 @@ class AutoModControlView(ui.View):
 
     @ui.button(label="عودة للقائمة الرئيسية", style=discord.ButtonStyle.danger, emoji="⬅️", row=4)
     async def back_btn(self, interaction: discord.Interaction, button: ui.Button):
+        await interaction.response.defer()
         view = ControlMainView()
-        embed = discord.Embed(
-            title="🛡️ لوحة التحكم الشاملة | Discord Control Center",
-            description="مرحباً بك مجدداً في اللوحة الرئيسية.",
-            color=discord.Color.from_rgb(88, 101, 242)
-        )
-        await interaction.response.edit_message(embed=embed, view=view)
+        embed = build_main_control_embed(interaction.guild, interaction.user)
+        await interaction.edit_original_response(embed=embed, view=view)
 
 # --- LOGS INTERACTIVE CONTROL VIEW ---
 
@@ -345,13 +349,10 @@ class LogsControlView(ui.View):
 
     @ui.button(label="عودة للقائمة الرئيسية", style=discord.ButtonStyle.danger, emoji="⬅️", row=4)
     async def back_btn(self, interaction: discord.Interaction, button: ui.Button):
+        await interaction.response.defer()
         view = ControlMainView()
-        embed = discord.Embed(
-            title="🛡️ لوحة التحكم الشاملة | Discord Control Center",
-            description="مرحباً بك مجدداً في اللوحة الرئيسية.",
-            color=discord.Color.from_rgb(88, 101, 242)
-        )
-        await interaction.response.edit_message(embed=embed, view=view)
+        embed = build_main_control_embed(interaction.guild, interaction.user)
+        await interaction.edit_original_response(embed=embed, view=view)
 
 # --- ECONOMY & SHOP INTERACTIVE CONTROL VIEW ---
 
@@ -413,13 +414,10 @@ class EconomyControlView(ui.View):
 
     @ui.button(label="عودة للقائمة الرئيسية", style=discord.ButtonStyle.danger, emoji="⬅️", row=4)
     async def back_btn(self, interaction: discord.Interaction, button: ui.Button):
+        await interaction.response.defer()
         view = ControlMainView()
-        embed = discord.Embed(
-            title="🛡️ لوحة التحكم الشاملة | Discord Control Center",
-            description="مرحباً بك مجدداً في اللوحة الرئيسية.",
-            color=discord.Color.from_rgb(88, 101, 242)
-        )
-        await interaction.response.edit_message(embed=embed, view=view)
+        embed = build_main_control_embed(interaction.guild, interaction.user)
+        await interaction.edit_original_response(embed=embed, view=view)
 
 # --- SHORTCUTS & ACTION VIEWS ---
 
@@ -445,15 +443,10 @@ class ShortcutsView(ui.View):
 
     @ui.button(label="عودة", style=discord.ButtonStyle.danger, emoji="⬅️", row=4)
     async def back_btn(self, interaction: discord.Interaction, button: ui.Button):
+        await interaction.response.defer()
         view = ControlMainView()
-        await interaction.response.edit_message(
-            embed=discord.Embed(
-                title="🛡️ لوحة التحكم الشاملة | Discord Control Center",
-                description="مرحباً بك مجدداً في اللوحة الرئيسية.",
-                color=discord.Color.from_rgb(88, 101, 242)
-            ),
-            view=view
-        )
+        embed = build_main_control_embed(interaction.guild, interaction.user)
+        await interaction.edit_original_response(embed=embed, view=view)
 
     # Moderation Shortcuts
     @ui.button(label="Warn (تحذير)", style=discord.ButtonStyle.secondary, emoji="⚠️", row=0)
@@ -529,17 +522,19 @@ class MemberSelectorView(ui.View):
             view = ChannelSelectorView(action="move_target", member=member)
             await interaction.response.edit_message(content=f"اختر القناة التي تريد نقل {member.mention} إليها:", view=view)
         elif self.action == "voice_mute":
+            await interaction.response.defer(ephemeral=True)
             async with AsyncSessionLocal() as session:
                 service = VoiceService(session)
                 count, errs = await service.set_mute_state(interaction.guild, interaction.user, True, member=member, reason="CP Mute")
-                if count > 0: await interaction.response.send_message(f"✅ تم كتم صوت {member.mention}.", ephemeral=True)
-                else: await interaction.response.send_message(f"❌ فشل: {', '.join(errs)}", ephemeral=True)
+                if count > 0: await interaction.followup.send(f"✅ تم كتم صوت {member.mention}.", ephemeral=True)
+                else: await interaction.followup.send(f"❌ فشل: {', '.join(errs)}", ephemeral=True)
         elif self.action == "voice_disconnect":
+            await interaction.response.defer(ephemeral=True)
             async with AsyncSessionLocal() as session:
                 service = VoiceService(session)
                 count, errs = await service.disconnect_members(interaction.guild, interaction.user, member=member, reason="CP Disconnect")
-                if count > 0: await interaction.response.send_message(f"✅ تم فصل {member.mention}.", ephemeral=True)
-                else: await interaction.response.send_message(f"❌ فشل: {', '.join(errs)}", ephemeral=True)
+                if count > 0: await interaction.followup.send(f"✅ تم فصل {member.mention}.", ephemeral=True)
+                else: await interaction.followup.send(f"❌ فشل: {', '.join(errs)}", ephemeral=True)
 
 class ChannelSelectorView(ui.View):
     def __init__(self, action: str, member: Optional[discord.Member] = None):

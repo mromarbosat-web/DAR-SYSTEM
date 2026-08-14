@@ -12,11 +12,18 @@ logger = logging.getLogger("discord_bot.profile_repository")
 def calculate_level_info(total_xp: int) -> Tuple[int, int, int, float]:
     """
     Calculates (level, current_xp_in_level, needed_xp_for_next_level, progress_percentage)
+    Balanced progressive RPG curve:
+    Level 1: 385 XP
+    Level 2: 590 XP
+    Level 3: 840 XP
+    Level 4: 1125 XP
+    Level 5: 1445 XP
+    Level 10: 3450 XP
     """
     level = 1
     accumulated = 0
     while True:
-        needed = 100 + (level - 1) * 150
+        needed = int(250 + (level * 100) + (level ** 1.6) * 35)
         if total_xp < accumulated + needed:
             current_xp = total_xp - accumulated
             progress = round((current_xp / needed) * 100, 1)
@@ -56,23 +63,33 @@ class ProfileRepository:
                 await self.session.rollback()
         return profile
 
-    async def add_xp(self, user_id: int, xp_amount: int) -> Tuple[UserProfile, bool, int]:
+    async def add_xp(self, user_id: int, xp_amount: int, cooldown_seconds: int = 60) -> Tuple[UserProfile, bool, int]:
         """
-        Adds XP to user profile and checks for level-up.
+        Adds XP to user profile with cooldown check to prevent fast level-ups.
         Returns (profile, leveled_up: bool, new_level: int)
         """
         profile = await self.get_or_create_profile(user_id)
+        now = utc_now()
+        profile.messages_count += 1
+        
+        # Check cooldown for XP gain (e.g. max once per 60 seconds)
+        if profile.last_xp_at:
+            elapsed = (now - profile.last_xp_at).total_seconds()
+            if elapsed < cooldown_seconds:
+                # User is on XP cooldown, only message count increments
+                await self.session.commit()
+                return profile, False, profile.level
+
         old_level = profile.level
         profile.xp += xp_amount
-        profile.messages_count += 1
-        profile.last_xp_at = utc_now()
+        profile.last_xp_at = now
         
         new_level, _, _, _ = calculate_level_info(profile.xp)
         leveled_up = new_level > old_level
         if leveled_up:
             profile.level = new_level
 
-        profile.updated_at = utc_now()
+        profile.updated_at = now
         await self.session.commit()
         await self.session.refresh(profile)
         return profile, leveled_up, new_level

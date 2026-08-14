@@ -53,6 +53,7 @@ class ShortcutRepository:
         target_action: str,
         created_by: int,
         allowed_roles: Optional[str] = None,
+        ignored_roles: Optional[str] = None,
         allowed_users: Optional[str] = None,
         allowed_channels: Optional[str] = None,
         ignored_channels: Optional[str] = None,
@@ -67,6 +68,7 @@ class ShortcutRepository:
                 target_action=target_action,
                 created_by=created_by,
                 allowed_roles=allowed_roles,
+                ignored_roles=ignored_roles,
                 allowed_users=allowed_users,
                 allowed_channels=allowed_channels,
                 ignored_channels=ignored_channels,
@@ -78,6 +80,7 @@ class ShortcutRepository:
         else:
             shortcut.target_action = target_action
             shortcut.allowed_roles = allowed_roles
+            shortcut.ignored_roles = ignored_roles
             shortcut.allowed_users = allowed_users
             shortcut.allowed_channels = allowed_channels
             shortcut.ignored_channels = ignored_channels

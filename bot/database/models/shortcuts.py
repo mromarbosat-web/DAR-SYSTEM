@@ -16,6 +16,7 @@ class CommandShortcut(Base):
     trigger_word: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     target_action: Mapped[str] = mapped_column(String(50), nullable=False) # warn, timeout, kick, ban, purge, lock, unlock, voice_mute, voice_disconnect, voice_move, profile, balance, shop, daily, warnings
     allowed_roles: Mapped[Optional[str]] = mapped_column(String(500), nullable=True) # comma-separated role IDs
+    ignored_roles: Mapped[Optional[str]] = mapped_column(String(500), nullable=True) # comma-separated role IDs
     allowed_users: Mapped[Optional[str]] = mapped_column(String(500), nullable=True) # comma-separated user IDs
     allowed_channels: Mapped[Optional[str]] = mapped_column(String(500), nullable=True) # comma-separated channel IDs
     ignored_channels: Mapped[Optional[str]] = mapped_column(String(500), nullable=True) # comma-separated channel IDs

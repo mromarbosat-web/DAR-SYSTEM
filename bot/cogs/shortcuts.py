@@ -243,6 +243,14 @@ class ShortcutsCog(commands.Cog):
             perm_service = PermissionService(session)
             is_admin = await perm_service.is_server_admin(message.author) or settings.is_bot_owner(message.author.id)
 
+            user_rids = [r.id for r in message.author.roles]
+
+            # Check Ignored / Excluded Roles
+            if shortcut.ignored_roles:
+                ignored_rids = [int(rid.strip()) for rid in shortcut.ignored_roles.split(",") if rid.strip().isdigit()]
+                if any(r in ignored_rids for r in user_rids) and not settings.is_bot_owner(message.author.id):
+                    return
+
             if not is_admin:
                 if shortcut.allowed_users:
                     allowed_uids = [int(uid.strip()) for uid in shortcut.allowed_users.split(",") if uid.strip().isdigit()]
@@ -251,7 +259,6 @@ class ShortcutsCog(commands.Cog):
 
                 if shortcut.allowed_roles:
                     allowed_rids = [int(rid.strip()) for rid in shortcut.allowed_roles.split(",") if rid.strip().isdigit()]
-                    user_rids = [r.id for r in message.author.roles]
                     if allowed_rids and not any(r in allowed_rids for r in user_rids):
                         return
 
@@ -312,9 +319,12 @@ class ShortcutsCog(commands.Cog):
 
             elif action == "profile":
                 profile_svc = ProfileService(session)
-                embed = await profile_svc.build_profile_embed(message.author)
+                embed, card_file = await profile_svc.build_profile_card_file(message.author)
                 view = ProfileView(message.author)
-                await message.reply(embed=embed, view=view)
+                if card_file:
+                    await message.reply(embed=embed, file=card_file, view=view)
+                else:
+                    await message.reply(embed=embed, view=view)
 
             elif action == "balance":
                 eco_svc = EconomyService(session)
@@ -365,11 +375,14 @@ class ShortcutsCog(commands.Cog):
 
     # --- ADMIN SLASH COMMANDS FOR MANAGING SHORTCUTS ---
 
-    @shortcut_group.command(name="add", description="إنشاء أو تعديل اختصار نصي للأوامر (مثال: كتابة 'تحذير' يفتح نافذة التحذير)")
+    @shortcut_group.command(name="add", description="إنشاء أو تعديل اختصار نصي للأوامر وتحديد رتب متعددة مسموحة أو مستثناة")
     @app_commands.describe(
         trigger="الكلمة المفتاحية (مثال: تحذير، كتم، طرد، حظر، مسح، قفل، بروفايل)",
         action="الإجراء المنفذ عند كتابة الكلمة",
         allowed_role="رتبة مسموح لها استخدام الاختصار (اختياري)",
+        allowed_roles="رتب مسموحة متعددة (منشن أو أيديهات مفصولة بمسافة أو فاصلة)",
+        ignored_role="رتبة مستثناة وممنوعة من استخدام الاختصار (اختياري)",
+        ignored_roles="رتب مستثناة وممنوعة متعددة (منشن أو أيديهات)",
         allowed_channel="قناة مسموح بالاختصار فيها فقط (اختياري)",
         ignored_channel="قناة ممنوع فيها الاختصار (اختياري)"
     )
@@ -395,6 +408,9 @@ class ShortcutsCog(commands.Cog):
         trigger: str,
         action: app_commands.Choice[str],
         allowed_role: Optional[discord.Role] = None,
+        allowed_roles: Optional[str] = None,
+        ignored_role: Optional[discord.Role] = None,
+        ignored_roles: Optional[str] = None,
         allowed_channel: Optional[discord.TextChannel] = None,
         ignored_channel: Optional[discord.TextChannel] = None
     ):
@@ -406,26 +422,51 @@ class ShortcutsCog(commands.Cog):
                 await interaction.followup.send(embed=EmbedBuilder.error("عذراً", "هذا الأمر مخصص فقط لإدارة السيرفر!"), ephemeral=True)
                 return
 
+            import re
+            # Extract allowed role IDs
+            allowed_ids_set = set()
+            if allowed_role:
+                allowed_ids_set.add(allowed_role.id)
+            if allowed_roles:
+                for match in re.findall(r"\d+", allowed_roles):
+                    allowed_ids_set.add(int(match))
+
+            # Extract ignored role IDs
+            ignored_ids_set = set()
+            if ignored_role:
+                ignored_ids_set.add(ignored_role.id)
+            if ignored_roles:
+                for match in re.findall(r"\d+", ignored_roles):
+                    ignored_ids_set.add(int(match))
+
+            allowed_roles_str = ",".join(str(i) for i in allowed_ids_set) if allowed_ids_set else None
+            ignored_roles_str = ",".join(str(i) for i in ignored_ids_set) if ignored_ids_set else None
+
             repo = ShortcutRepository(session)
             sc = await repo.add_or_update_shortcut(
                 guild_id=interaction.guild.id,
                 trigger_word=trigger,
                 target_action=action.value,
                 created_by=interaction.user.id,
-                allowed_roles=str(allowed_role.id) if allowed_role else None,
+                allowed_roles=allowed_roles_str,
+                ignored_roles=ignored_roles_str,
                 allowed_channels=str(allowed_channel.id) if allowed_channel else None,
                 ignored_channels=str(ignored_channel.id) if ignored_channel else None,
                 enabled=True
             )
 
+            allowed_mentions = " ".join(f"<@&{r}>" for r in allowed_ids_set) if allowed_ids_set else "الجميع حسب الصلاحية"
+            ignored_mentions = " ".join(f"<@&{r}>" for r in ignored_ids_set) if ignored_ids_set else "لا يوجد"
+
             msg = (
                 f"✅ تم بنجاح حفظ الاختصار **`{trigger}`**:\n"
                 f"• **الإجراء:** `{action.name}`\n"
-                f"• **الرتبة المسموحة:** {allowed_role.mention if allowed_role else 'الجميع حسب الصلاحية'}\n"
+                f"• **الرتب المسموحة:** {allowed_mentions}\n"
+                f"• **الرتب المستثناة (المحظورة):** {ignored_mentions}\n"
                 f"• **القناة المسموحة:** {allowed_channel.mention if allowed_channel else 'كافة القنوات'}\n"
                 f"• **القناة المحظورة:** {ignored_channel.mention if ignored_channel else 'لا يوجد'}"
             )
-            await interaction.followup.send(embed=EmbedBuilder.success("تم حفظ الاختصار", msg), ephemeral=True)
+            await interaction.followup.send(embed=EmbedBuilder.success("تم حفظ وتخصيص الاختصار", msg), ephemeral=True)
 
     @shortcut_group.command(name="remove", description="حذف اختصار مسجل")
     @app_commands.describe(trigger="الكلمة المفتاحية المراد حذفها")

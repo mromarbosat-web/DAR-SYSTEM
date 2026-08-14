@@ -1,5 +1,6 @@
 import random
 import logging
+import io
 from datetime import datetime, timezone
 from typing import Optional, List, Tuple
 import discord
@@ -13,6 +14,7 @@ from bot.database.repositories.economy_repository import EconomyRepository
 from bot.database.repositories.shop_repository import ShopRepository
 from bot.database.models.economy import UserProfile, ShopProduct
 from bot.utils.embeds import EmbedBuilder
+from bot.utils.card_generator import generate_profile_card
 
 logger = logging.getLogger("discord_bot.profile_service")
 
@@ -26,10 +28,10 @@ class ProfileService:
     async def get_profile(self, user_id: int) -> UserProfile:
         return await self.profile_repo.get_or_create_profile(user_id)
 
-    async def add_message_xp(self, user_id: int, min_xp: int = 15, max_xp: int = 25) -> Tuple[UserProfile, bool, int]:
-        """Awards message XP to user and returns (profile, leveled_up, new_level)"""
+    async def add_message_xp(self, user_id: int, min_xp: int = 10, max_xp: int = 20) -> Tuple[UserProfile, bool, int]:
+        """Awards message XP to user with 60-second cooldown and returns (profile, leveled_up, new_level)"""
         xp_gain = random.randint(min_xp, max_xp)
-        return await self.profile_repo.add_xp(user_id, xp_gain)
+        return await self.profile_repo.add_xp(user_id, xp_gain, cooldown_seconds=60)
 
     async def set_bio(self, user_id: int, new_bio: str) -> Tuple[bool, str]:
         """Changes user status/bio for 2000 Aura"""
@@ -41,25 +43,48 @@ class ProfileService:
     async def get_user_banners(self, user_id: int) -> List[ShopProduct]:
         return await self.profile_repo.get_user_banners(user_id)
 
-    async def build_profile_embed(self, member: discord.Member) -> discord.Embed:
+    async def build_profile_card_file(self, member: discord.Member) -> Tuple[discord.Embed, Optional[discord.File]]:
+        """
+        Builds the profile embed and generates the visual Profile Card image
+        displaying member banner, avatar, Aura balance, level, rank, and join date.
+        """
         profile = await self.get_profile(member.id)
         wallet = await self.eco_repo.get_or_create_wallet(member.id)
         rank = await self.profile_repo.get_user_rank(member.id)
 
         level, cur_xp, needed_xp, progress = calculate_level_info(profile.xp)
         xp_bar = generate_xp_bar(progress, length=8)
-
         total_balance = wallet.balance + wallet.bank_balance
 
-        # Clean, streamlined, elegant profile embed with avatar integrated at top right thumbnail
-        embed = discord.Embed(
-            title=f"👤 الملف الشخصي • {member.display_name}",
-            description=f"💬 **الحالة:** *{profile.bio}*",
-            color=discord.Color.from_rgb(114, 137, 218)
+        # Generate Profile Card image
+        card_bytes = await generate_profile_card(
+            member=member,
+            banner_url=profile.equipped_banner_url,
+            bio=profile.bio,
+            level=level,
+            rank=rank,
+            cur_xp=cur_xp,
+            needed_xp=needed_xp,
+            progress_percent=progress,
+            total_balance=total_balance,
+            currency_name=settings.CURRENCY_NAME,
+            currency_emoji=settings.CURRENCY_EMOJI
         )
-        
-        # User Avatar integrated directly in the profile card
-        embed.set_thumbnail(url=member.display_avatar.url)
+
+        embed = discord.Embed(
+            title=f"👤 بطاقة الملف الشخصي • {member.display_name}",
+            description=f"💬 **الحالة:** *{profile.bio}*",
+            color=discord.Color.from_rgb(88, 101, 242)
+        )
+
+        discord_file: Optional[discord.File] = None
+        if card_bytes:
+            discord_file = discord.File(fp=card_bytes, filename="profile_card.png")
+            embed.set_image(url="attachment://profile_card.png")
+        else:
+            embed.set_thumbnail(url=member.display_avatar.url)
+            if profile.equipped_banner_url:
+                embed.set_image(url=profile.equipped_banner_url)
 
         embed.add_field(
             name="⭐ المستوى والخبرة",
@@ -75,7 +100,7 @@ class ProfileService:
 
         embed.add_field(
             name="🖼️ البانر المجهز",
-            value=f"**{profile.equipped_banner_name}**\n*(تصفح المتجر للتبديل)*",
+            value=f"**{profile.equipped_banner_name}**\n*(تصفح المتجر لتغييره)*",
             inline=True
         )
 
@@ -84,4 +109,8 @@ class ProfileService:
             icon_url=member.guild.icon.url if member.guild and member.guild.icon else None
         )
 
+        return embed, discord_file
+
+    async def build_profile_embed(self, member: discord.Member) -> discord.Embed:
+        embed, _ = await self.build_profile_card_file(member)
         return embed
