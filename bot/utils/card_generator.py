@@ -27,32 +27,19 @@ def get_system_font(size: int, bold: bool = False, italic: bool = False) -> Opti
     fonts_dir = os.path.join(base_dir, "assets", "fonts")
 
     font_candidates = [
-        # 1. Bundled Noto Arabic fonts (Official Google Noto Arabic fonts)
+        # 1. Robust FreeSans & DejaVuSans (supports Arabic, Latin, numbers, symbols without tofu boxes)
+        "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf" if bold else "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        # 2. Bundled Noto Arabic fonts
         os.path.join(fonts_dir, "NotoSansArabic-Bold.ttf" if bold else "NotoSansArabic-Regular.ttf"),
         os.path.join(fonts_dir, "NotoNaskhArabic-Bold.ttf" if bold else "NotoNaskhArabic-Regular.ttf"),
-        "bot/assets/fonts/NotoSansArabic-Bold.ttf" if bold else "bot/assets/fonts/NotoSansArabic-Regular.ttf",
-        "bot/assets/fonts/NotoNaskhArabic-Bold.ttf" if bold else "bot/assets/fonts/NotoNaskhArabic-Regular.ttf",
-        # 2. Bundled Cairo fonts (Modern Arabic typography)
+        # 3. Bundled Cairo fonts
         os.path.join(fonts_dir, "Cairo-Bold.ttf" if bold else "Cairo-Regular.ttf"),
-        "bot/assets/fonts/Cairo-Bold.ttf" if bold else "bot/assets/fonts/Cairo-Regular.ttf",
-        # 3. System Noto Arabic fonts (apt installed)
+        # 4. System Noto Arabic & Kacst
         "/usr/share/fonts/truetype/noto/NotoSansArabic-Bold.ttf" if bold else "/usr/share/fonts/truetype/noto/NotoSansArabic-Regular.ttf",
-        "/usr/share/fonts/truetype/noto/NotoNaskhArabic-Bold.ttf" if bold else "/usr/share/fonts/truetype/noto/NotoNaskhArabic-Regular.ttf",
-        # 4. System Arabic Kacst fonts
         "/usr/share/fonts/truetype/kacst/KacstTitle.ttf" if bold else "/usr/share/fonts/truetype/kacst/KacstBook.ttf",
-        "/usr/share/fonts/truetype/kacst/KacstOffice.ttf",
-        "/usr/share/fonts/truetype/kacst/KacstLetter.ttf",
-        "/usr/share/fonts/truetype/kacst/KacstNaskh.ttf",
-        "/usr/share/fonts/truetype/kacst/KacstDecorative.ttf",
-        "/usr/share/fonts/truetype/kacst/KacstQurn.ttf",
-        # 5. System FreeSerif font (has Arabic glyphs)
         "/usr/share/fonts/truetype/freefont/FreeSerifBold.ttf" if bold else "/usr/share/fonts/truetype/freefont/FreeSerif.ttf",
-        # 6. DejaVu & System fallbacks
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else ("/usr/share/fonts/truetype/dejavu/DejaVuSans-Oblique.ttf" if italic else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"),
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else ("/usr/share/fonts/truetype/liberation/LiberationSans-Italic.ttf" if italic else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"),
-        "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf" if bold else ("/usr/share/fonts/truetype/freefont/FreeSansOblique.ttf" if italic else "/usr/share/fonts/truetype/freefont/FreeSans.ttf"),
-        "NotoSansArabic-Bold.ttf" if bold else "NotoSansArabic-Regular.ttf",
-        "Cairo-Bold.ttf" if bold else "Cairo-Regular.ttf",
         "DejaVuSans-Bold.ttf" if bold else "DejaVuSans.ttf",
         "arial.ttf"
     ]

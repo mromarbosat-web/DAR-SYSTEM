@@ -66,8 +66,8 @@ class BannerCarouselView(ui.View):
         status_text = "⭐ **مجهز حالياً لبروفايلك**" if is_equipped else ("✅ **مملوك في حقيبتك**" if is_owned else "🛒 **غير مملوك**")
 
         embed = discord.Embed(
-            title=f"🖼️ متجر البانرات | {banner.emoji} {banner.name}",
-            description=f"**الوصف:** {banner.description}",
+            title=f"🖼️ متجر البانرات | {banner.emoji} معرف البانر #{banner.product_id}",
+            description="",
             color=discord.Color.from_rgb(138, 43, 226)
         )
         embed.add_field(name="🆔 معرف البانر (ID)", value=f"`#{banner.product_id}`", inline=True)

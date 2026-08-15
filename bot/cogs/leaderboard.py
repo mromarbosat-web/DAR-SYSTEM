@@ -50,8 +50,10 @@ class LeaderboardView(ui.View):
                 activity_type=self.current_type,
                 period=self.current_period
             )
-            attachments = [file] if file else []
-            await interaction.edit_original_response(embed=embed, attachments=attachments, view=self)
+            if file:
+                await interaction.edit_original_response(embed=embed, file=file, view=self)
+            else:
+                await interaction.edit_original_response(embed=embed, view=self)
 
     @ui.button(label="💬 توب الكتابة", style=discord.ButtonStyle.primary, row=0, custom_id="btn_lb_text")
     async def btn_text(self, interaction: discord.Interaction, button: ui.Button):
