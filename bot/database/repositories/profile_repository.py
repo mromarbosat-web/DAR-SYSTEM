@@ -50,7 +50,7 @@ class ProfileRepository:
                 user_id=user_id,
                 xp=0,
                 level=1,
-                bio="I am just human",
+                bio="مرحباً بك في ملفي الشخصي!",
                 equipped_banner_url="https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=1000&auto=format&fit=crop&q=80",
                 equipped_banner_name="الافتراضي (Cosmic Default)",
                 messages_count=0
@@ -99,13 +99,9 @@ class ProfileRepository:
         Updates user custom bio/status for a cost in Aura.
         """
         if len(new_bio.strip()) == 0:
-            return False, "Status cannot be empty!"
+            return False, "لا يمكن أن تكون الحالة فارغة!"
         if len(new_bio) > 200:
-            return False, "Status is too long! Maximum is 200 characters."
-        
-        import re
-        if re.search(r'[\u0600-\u06FF]', new_bio):
-            return False, "Please write your status in English only! (يرجى كتابة الحالة باللغة الإنجليزية فقط)"
+            return False, "الحالة طويلة جداً! الحد الأقصى هو 200 حرف."
 
         # Check and deduct balance
         stmt_w = select(Wallet).where(Wallet.user_id == user_id).with_for_update()

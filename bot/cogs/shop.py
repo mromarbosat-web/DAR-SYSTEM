@@ -30,30 +30,70 @@ class ShopCog(commands.Cog):
                 )
                 await interaction.followup.send(embed=embed)
             else:
-                fields = []
-                for p in products:
-                    stk_str = "غير محدود" if p.stock < 0 else f"`{p.stock}` قطعة"
-                    max_str = f" | الحد: `{p.max_per_user}`/شخص" if p.max_per_user > 0 else ""
-                    desc = f"{p.description}\n" if p.description else ""
+                class ShopPaginationView(discord.ui.View):
+                    def __init__(self, products: list, user_id: int):
+                        super().__init__(timeout=180)
+                        self.products = products
+                        self.user_id = user_id
+                        self.page = 0
+                        self.per_page = 8
+                        self.total_pages = (len(products) + self.per_page - 1) // self.per_page
+                        self.update_buttons()
 
-                    fields.append((
-                        f"{p.emoji} {p.name} — #{p.product_id}",
-                        f"{desc}💰 **السعر:** `{p.price:,}` {settings.CURRENCY_NAME}\n📦 **المخزون:** {stk_str}{max_str}\n🛒 **للشراء:** `/buy product_id:{p.product_id}`",
-                        False
-                    ))
+                    def update_buttons(self):
+                        self.prev_button.disabled = (self.page == 0)
+                        self.next_button.disabled = (self.page >= self.total_pages - 1)
 
-                embed = EmbedBuilder.info(
-                    title=f"🛒 متجر السيرفر الرئيسي - {settings.CURRENCY_NAME} {settings.CURRENCY_EMOJI}",
-                    description=f"استخدم أزرار وأوامر الشراء لاقتناء الرتب والمنتجات باستعمال عملتك **{settings.CURRENCY_NAME}**:",
-                    fields=fields
-                )
-                
-                # Add Banner Carousel Quick Button
-                class ShopBrowseView(discord.ui.View):
-                    def __init__(self):
-                        super().__init__(timeout=120)
+                    def get_current_embed(self) -> discord.Embed:
+                        start = self.page * self.per_page
+                        end = start + self.per_page
+                        chunk = self.products[start:end]
 
-                    @discord.ui.button(label="🖼️ تصفح متجر البانرات التفاعلي", style=discord.ButtonStyle.primary)
+                        fields = []
+                        for p in chunk:
+                            stk_str = "غير محدود" if p.stock < 0 else f"`{p.stock}` قطعة"
+                            max_str = f" | الحد: `{p.max_per_user}`/شخص" if p.max_per_user > 0 else ""
+                            desc = f"{p.description}\n" if p.description else ""
+
+                            fields.append((
+                                f"{p.emoji} {p.name} — #{p.product_id}",
+                                f"{desc}💰 **السعر:** `{p.price:,}` {settings.CURRENCY_NAME}\n📦 **المخزون:** {stk_str}{max_str}\n🛒 **للشراء:** `/buy product_id:{p.product_id}`",
+                                False
+                            ))
+
+                        embed = EmbedBuilder.info(
+                            title=f"🛒 متجر السيرفر الرئيسي - {settings.CURRENCY_NAME} {settings.CURRENCY_EMOJI} (صفحة {self.page + 1}/{self.total_pages})",
+                            description=f"استخدم أزرار وأوامر الشراء لاقتناء الرتب والمنتجات باستعمال عملتك **{settings.CURRENCY_NAME}**:",
+                            fields=fields
+                        )
+                        embed.set_footer(text=f"إجمالي المنتجات: {len(self.products)} منتج")
+                        return embed
+
+                    @discord.ui.button(label="◀ السابق", style=discord.ButtonStyle.secondary, custom_id="shop_prev")
+                    async def prev_button(self, inter: discord.Interaction, button: discord.ui.Button):
+                        if inter.user.id != self.user_id:
+                            await inter.response.send_message("❌ هذه القائمة ليست لك!", ephemeral=True)
+                            return
+                        if self.page > 0:
+                            self.page -= 1
+                            self.update_buttons()
+                            await inter.response.edit_message(embed=self.get_current_embed(), view=self)
+                        else:
+                            await inter.response.defer()
+
+                    @discord.ui.button(label="التالي ▶", style=discord.ButtonStyle.secondary, custom_id="shop_next")
+                    async def next_button(self, inter: discord.Interaction, button: discord.ui.Button):
+                        if inter.user.id != self.user_id:
+                            await inter.response.send_message("❌ هذه القائمة ليست لك!", ephemeral=True)
+                            return
+                        if self.page < self.total_pages - 1:
+                            self.page += 1
+                            self.update_buttons()
+                            await inter.response.edit_message(embed=self.get_current_embed(), view=self)
+                        else:
+                            await inter.response.defer()
+
+                    @discord.ui.button(label="🖼️ تصفح متجر البانرات", style=discord.ButtonStyle.primary, custom_id="shop_banners")
                     async def open_banners(self, inter: discord.Interaction, button: discord.ui.Button):
                         from bot.cogs.profile import BannerCarouselView
                         async with AsyncSessionLocal() as sess:
@@ -67,7 +107,8 @@ class ShopCog(commands.Cog):
                             em = await carousel.get_current_embed(inter.user.id)
                             await inter.response.send_message(embed=em, view=carousel, ephemeral=True)
 
-                await interaction.followup.send(embed=embed, view=ShopBrowseView())
+                view = ShopPaginationView(products, interaction.user.id)
+                await interaction.followup.send(embed=view.get_current_embed(), view=view)
 
     @app_commands.command(name="متجر", description="استعراض قائمة معروضات ومنتجات المتجر للعملة")
     async def arabic_shop_command(self, interaction: discord.Interaction):
