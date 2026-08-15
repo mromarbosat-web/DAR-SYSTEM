@@ -207,9 +207,9 @@ async def generate_profile_card(
     # Fonts
     font_name = get_system_font(23, bold=True)
     font_medium = get_latin_font(16, bold=True)
-    font_small = get_latin_font(13, bold=False)
+    font_small = get_system_font(13, bold=False)
     font_label = get_system_font(12, bold=True)
-    font_bio = get_system_font(14, bold=False)
+    font_bio = get_system_font(16, bold=True)
 
     # 4. Member Name, Tag, and Join Date (With subtle text shadow for crisp contrast over banner)
     info_x = avatar_x + avatar_size + 25

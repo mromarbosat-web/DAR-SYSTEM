@@ -290,6 +290,251 @@ DEFAULT_BANNERS = [
         "emoji": "⚜️",
         "type": "BANNER",
         "data": "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1000&auto=format&fit=crop&q=80"
+    },
+    # --- ISLAMIC DARK BANNERS (10 Banners) ---
+    {
+        "name": "🕌 بانر المسجد العباسي الليلي (Dark Abbasid Mosque)",
+        "price": 10000,
+        "description": "بانر إسلامي داكن لعمارة المساجد التاريخية تحت سماء الليل الهادئة.",
+        "emoji": "🕌",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1564507592333-c60657eea523?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "🕋 بانر السكينة الحرم المكي (Makkah Holy Serenity)",
+        "price": 12000,
+        "description": "أجواء إيمانية روحانية هادئة وعميقة تمس القلوب.",
+        "emoji": "🕋",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "✨ بانر الفانوس الرمضاني الفاخر (Dark Ramadan Lantern)",
+        "price": 9000,
+        "description": "إضاءة دافئة لفانوس عربي تقليدي في خلفية داكنة فاخرة.",
+        "emoji": "✨",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "🌙 بانر هلال الليل المبارك (Blessed Night Crescent)",
+        "price": 9500,
+        "description": "هلال متلألئ في سماء ليلية مظلمة وساحرة.",
+        "emoji": "🌙",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1532693322450-2cb5c511067d?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "🕌 بانر العمارة الأندلسية العريقة (Andalusian Night Arch)",
+        "price": 11000,
+        "description": "أقواس وزخارف إسلامية أندلسية أصيلة بإضاءة ليلية دافئة.",
+        "emoji": "🕌",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "🕯️ بانر الزخارف الإسلامية المظلمة (Dark Islamic Arabesque)",
+        "price": 10500,
+        "description": "نقوش إسلامية هندسية عريقة بتدرجات مظلمة وساطعة.",
+        "emoji": "🕯️",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "🕌 بانر المسجد الأزرق العثماني (Ottoman Blue Mosque Night)",
+        "price": 11500,
+        "description": "روعة العمارة العثمانية والمآذن الشامخة ليلاً.",
+        "emoji": "🕌",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "🌟 بانر ليالي القدر المباركة (Laylat al-Qadr Night)",
+        "price": 12500,
+        "description": "أجواء ليلية مباركة مليئة بالنور والخشوع والسكينة.",
+        "emoji": "🌟",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "🕌 بانر القبة الذهبية الليلي (Golden Dome Night View)",
+        "price": 13000,
+        "description": "إضاءة القباب الذهبية الإسلامية وسط عتمة الليل الساحرة.",
+        "emoji": "🕌",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1565008447742-97f6f38c985c?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "📜 بانر المخطوطات والقرآن العريق (Ancient Arabic Calligraphy)",
+        "price": 10000,
+        "description": "فنون الخط العربي الأصيل والمخطوطات التاريخية الفاخرة.",
+        "emoji": "📜",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1455390582262-044cdead277a?w=1200&h=600&fit=crop&q=80"
+    },
+
+    # --- NATURE SCENIC BANNERS (10 Banners) ---
+    {
+        "name": "🌲 بانر الغابات الخضراء العميقة (Deep Emerald Forest)",
+        "price": 8500,
+        "description": "مشهد طبيعي أفقي لأشجار الصنوبر الكثيفة والخضرة النقية.",
+        "emoji": "🌲",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1448375240586-882707db888b?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "🏔️ بانر قمم الجبال الثلجية الكبرى (Majestic Alpine Peaks)",
+        "price": 9000,
+        "description": "سلسلة جبال شامخة مغطاة بالثلوج الناصعة تحت سماء صافية.",
+        "emoji": "🏔️",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "🏞️ بانر الوديان الخضراء الساحرة (Serene Green Valley)",
+        "price": 8000,
+        "description": "وادي أخضر رحب يتوسطه نهر هادئ وطبيعة بكر خلابة.",
+        "emoji": "🏞️",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "🌊 بانر الشلالات الغابية المنسابة (Enchanted Forest Waterfall)",
+        "price": 9500,
+        "description": "تدفق مياه الشلالات النقية وسط أحضان الغابات الخضراء.",
+        "emoji": "🌊",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1432405972618-c60b0225b8f9?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "🌅 بانر شروق الشمس فوق البحيرة (Lake Sunrise Mirror)",
+        "price": 9000,
+        "description": "انعكاس ألوان الشروق الساحرة على سطح بحيرة جبلية ساكنة.",
+        "emoji": "🌅",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "🌾 بانر حقول القمح الذهبية المترامية (Golden Wheat Horizon)",
+        "price": 8500,
+        "description": "سهوب وحقول قمح ذهبية تمتد حتى أفق السماء الفسيحة.",
+        "emoji": "🌾",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "🌸 بانر حديقة الورود الربيعية (Spring Blooming Garden)",
+        "price": 8000,
+        "description": "تفتح أزهار الربيع الزاهية في لوحة طبيعية مبهجة.",
+        "emoji": "🌸",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1522383225653-ed111181a951?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "🍂 بانر خريف الغابات الدافئ (Warm Autumn Canopy)",
+        "price": 8500,
+        "description": "أوراق الأشجار البرتقالية والذهبية في فصل الخريف الساحر.",
+        "emoji": "🍂",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "🏝️ بانر الجزر الاستوائية الهادئة (Tropical Paradise Coast)",
+        "price": 9500,
+        "description": "رمال بيضاء ناعمة ومياه تركوازية صافية في جزيرة استوائية.",
+        "emoji": "🏝️",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "🌿 بانر السراخس والأدغال الاستوائية (Tropical Fern Jungle)",
+        "price": 9000,
+        "description": "أدغال استوائية كثيفة بنقاط ضوء الشمس المتسللة عبر الأشجار.",
+        "emoji": "🌿",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?w=1200&h=600&fit=crop&q=80"
+    },
+
+    # --- NATURAL PHENOMENA & DISASTERS (10 Banners: Lightning, Volcanoes, Floods, Storms) ---
+    {
+        "name": "⚡ بانر عاصفة البرق والرعد الكبرى (Cataclysmic Lightning Storm)",
+        "price": 13500,
+        "description": "صواعق برق عملاقة تشق سماء عاصفة مظلمة وعنيفة.",
+        "emoji": "⚡",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "🌋 بانر ثوران بركان الحمم الغاضبة (Raging Volcanic Eruption)",
+        "price": 14000,
+        "description": "انفجار بركاني مهيب يطلق حمماً متوهجة وسحب رماد عملاقة.",
+        "emoji": "🌋",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1541872703-74c5e44368f9?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "🌊 بانر فيضان التسونامي الهادر (Tsunami Oceanic Surge)",
+        "price": 14500,
+        "description": "أمواج عملاقة وهادرة تعكس قوة الطبيعة الجارفة.",
+        "emoji": "🌊",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "🌪️ بانر إعصار التورنادو المدمر (Destructive Tornado Vortex)",
+        "price": 14000,
+        "description": "دوامة إعصار قمعية هائلة تجتاح السهوب بقوة فائقة.",
+        "emoji": "🌪️",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1527482797697-8795b05813fe?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "⚡ بانر صواعق العاصفة الليلية (Night Lightning Strikes)",
+        "price": 12500,
+        "description": "ضربات برق متفرقة تضيء السحاب الأسود في جو عاصف.",
+        "emoji": "⚡",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "☄️ بانر سقوط النيازك المشتعلة (Burning Meteor Shower)",
+        "price": 13500,
+        "description": "نيزك ملتهب يشق الغلاف الجوي بكتلة من النار والشرار.",
+        "emoji": "☄️",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "🌊 بانر طوفان السيول العارمة (Torrential Flash Flood)",
+        "price": 13000,
+        "description": "اندفاع مياه السيول الجارفة عبر الوديان والصخور.",
+        "emoji": "🌊",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "🌋 بانر أنهار الحمم المنصهِرة (Molten Lava Rivers)",
+        "price": 14000,
+        "description": "تيارات الحمم البركانية المتوهجة تشق طريقها وسط الصخور.",
+        "emoji": "🌋",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "🌪️ بانر عاصفة الغبار والرياح الكبرى (Catastrophic Dust Storm)",
+        "price": 12500,
+        "description": "جدار عملاق من الأتربة والعواصف الرملية الهائجة.",
+        "emoji": "🌪️",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?w=1200&h=600&fit=crop&q=80"
+    },
+    {
+        "name": "🌀 بانر الدوامة المائية المحيطية (Oceanic Whirlpool Abyss)",
+        "price": 13500,
+        "description": "دووامة بحرية عميقة ومرعبة في قلب المحيط الهائج.",
+        "emoji": "🌀",
+        "type": "BANNER",
+        "data": "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=1200&h=600&fit=crop&q=80"
     }
 ]
 
