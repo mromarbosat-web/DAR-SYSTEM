@@ -21,7 +21,9 @@ class ShopCog(commands.Cog):
 
         async with AsyncSessionLocal() as session:
             shop_service = ShopService(session)
-            products = await shop_service.list_products(enabled_only=True)
+            all_products = await shop_service.list_products(enabled_only=True)
+            # Server shop should only show non-banner items/roles
+            products = [p for p in all_products if p.type not in ["BANNER", "COSMETIC"]]
 
             if not products:
                 embed = EmbedBuilder.info(

@@ -317,28 +317,28 @@ DEFAULT_BANNERS = [
         "data": "https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?w=1200&h=600&fit=crop&q=80"
     },
     {
-        "name": "🌙 بانر هلال الليل المبارك (Blessed Night Crescent)",
+        "name": "🌕 بانر البدر الساطع المكتمل (Full Moon Radiance)",
         "price": 9500,
-        "description": "هلال متلألئ في سماء ليلية مظلمة وساحرة.",
-        "emoji": "🌙",
+        "description": "قمر بدر متلألئ ومكتمل في سماء ليلية مظلمة وساحرة.",
+        "emoji": "🌕",
         "type": "BANNER",
-        "data": "https://images.unsplash.com/photo-1532693322450-2cb5c511067d?w=1200&h=600&fit=crop&q=80"
+        "data": "https://images.unsplash.com/photo-1532767153582-b1a0e5145009?w=1200&h=600&fit=crop&q=80"
     },
     {
-        "name": "🕌 بانر العمارة الأندلسية العريقة (Andalusian Night Arch)",
+        "name": "🌿 بانر المروج الخضراء اليانعة (Lush Green Meadows)",
         "price": 11000,
-        "description": "أقواس وزخارف إسلامية أندلسية أصيلة بإضاءة ليلية دافئة.",
-        "emoji": "🕌",
+        "description": "طبيعة خضراء يانعة ومروج واسعة تناسب عشاق الخضرة والجمال.",
+        "emoji": "🌿",
         "type": "BANNER",
-        "data": "https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200&h=600&fit=crop&q=80"
+        "data": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?w=1200&h=600&fit=crop&q=80"
     },
     {
-        "name": "🕯️ بانر الزخارف الإسلامية المظلمة (Dark Islamic Arabesque)",
+        "name": "🕯️ بانر الفوانيس والمصابيح التراثية (Traditional Lanterns Glow)",
         "price": 10500,
-        "description": "نقوش إسلامية هندسية عريقة بتدرجات مظلمة وساطعة.",
+        "description": "إضاءة المصابيح التقليدية الدافئة وسط أجواء تراثية ساحرة.",
         "emoji": "🕯️",
         "type": "BANNER",
-        "data": "https://images.unsplash.com/photo-1579783902614-a3fb3927b675?w=1200&h=600&fit=crop&q=80"
+        "data": "https://images.unsplash.com/photo-1519710164239-da123dc03ef4?w=1200&h=600&fit=crop&q=80"
     },
     {
         "name": "🕌 بانر المسجد الأزرق العثماني (Ottoman Blue Mosque Night)",
@@ -349,28 +349,28 @@ DEFAULT_BANNERS = [
         "data": "https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?w=1200&h=600&fit=crop&q=80"
     },
     {
-        "name": "🌟 بانر ليالي القدر المباركة (Laylat al-Qadr Night)",
+        "name": "🌌 بانر السديم الفلكي الهادئ (Calm Astral Nebula)",
         "price": 12500,
-        "description": "أجواء ليلية مباركة مليئة بالنور والخشوع والسكينة.",
-        "emoji": "🌟",
+        "description": "أجواء فلكية هادئة وعميقة مليئة بالنجوم والسدم المضيئة.",
+        "emoji": "🌌",
         "type": "BANNER",
-        "data": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&h=600&fit=crop&q=80"
+        "data": "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=1200&h=600&fit=crop&q=80"
     },
     {
-        "name": "🕌 بانر القبة الذهبية الليلي (Golden Dome Night View)",
+        "name": "🏛️ بانر القصور التاريخية المهيبة (Majestic Historic Palace)",
         "price": 13000,
-        "description": "إضاءة القباب الذهبية الإسلامية وسط عتمة الليل الساحرة.",
-        "emoji": "🕌",
+        "description": "عمارة القصور التاريخية العريقة وسط عتمة الليل الساحرة.",
+        "emoji": "🏛️",
         "type": "BANNER",
-        "data": "https://images.unsplash.com/photo-1565008447742-97f6f38c985c?w=1200&h=600&fit=crop&q=80"
+        "data": "https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1200&h=600&fit=crop&q=80"
     },
     {
-        "name": "📜 بانر المخطوطات والقرآن العريق (Ancient Arabic Calligraphy)",
+        "name": "🎨 بانر الفنون التراثية الأصيلة (Authentic Heritage Art)",
         "price": 10000,
-        "description": "فنون الخط العربي الأصيل والمخطوطات التاريخية الفاخرة.",
-        "emoji": "📜",
+        "description": "لوحات وفنون تراثية أصيلة بتصاميم تاريخية فاخرة.",
+        "emoji": "🎨",
         "type": "BANNER",
-        "data": "https://images.unsplash.com/photo-1455390582262-044cdead277a?w=1200&h=600&fit=crop&q=80"
+        "data": "https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=1200&h=600&fit=crop&q=80"
     },
 
     # --- NATURE SCENIC BANNERS (10 Banners) ---
