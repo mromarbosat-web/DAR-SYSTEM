@@ -76,7 +76,14 @@ DEFAULT_BANNERS = [
     {"name": "أمواج عملاقة", "price": 12000, "description": "", "emoji": "🌊", "type": "BANNER", "data": "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=1200&h=600&fit=crop&q=80"},
     {"name": "عاصفة جليدية", "price": 11500, "description": "", "emoji": "❄️", "type": "BANNER", "data": "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&h=600&fit=crop&q=80"},
     {"name": "دوامة مائية", "price": 13000, "description": "", "emoji": "🌀", "type": "BANNER", "data": "https://images.unsplash.com/photo-1505118380757-91f5f5632de0?w=1200&h=600&fit=crop&q=80"},
-    {"name": "نيزك عابر", "price": 14000, "description": "", "emoji": "🌠", "type": "BANNER", "data": "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=1200&h=600&fit=crop&q=80"}
+    {"name": "نيزك عابر", "price": 14000, "description": "", "emoji": "🌠", "type": "BANNER", "data": "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=1200&h=600&fit=crop&q=80"},
+
+    # --- 5. SALARY & WEALTH BANNERS (5 Banners) ---
+    {"name": "خزينة ذهب", "price": 15000, "description": "", "emoji": "💰", "type": "BANNER", "data": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&h=600&fit=crop&q=80"},
+    {"name": "أموال طائلة", "price": 16000, "description": "", "emoji": "💵", "type": "BANNER", "data": "https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?w=1200&h=600&fit=crop&q=80"},
+    {"name": "عملات لامعة", "price": 15500, "description": "", "emoji": "🪙", "type": "BANNER", "data": "https://images.unsplash.com/photo-1621416894569-0f39ed31d247?w=1200&h=600&fit=crop&q=80"},
+    {"name": "ثروة كبرى", "price": 17000, "description": "", "emoji": "💎", "type": "BANNER", "data": "https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?w=1200&h=600&fit=crop&q=80"},
+    {"name": "راتب ملكي", "price": 18000, "description": "", "emoji": "👑", "type": "BANNER", "data": "https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=1200&h=600&fit=crop&q=80"}
 ]
 
 class ShopRepository:
