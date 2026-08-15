@@ -30,7 +30,7 @@ class Settings:
     # Bot Owners & Main Guild Configuration
     BOT_OWNER_IDS_RAW: str = os.getenv("BOT_OWNER_IDS", "1492628882145284238,1406547827865288786,1377224857292636200")
     MAIN_GUILD_ID: int = int(os.getenv("MAIN_GUILD_ID", "1391459645528215582"))
-    CURRENCY_NAME: str = os.getenv("CURRENCY_NAME", "أورا")
+    CURRENCY_NAME: str = os.getenv("CURRENCY_NAME", "أروا")
     CURRENCY_EMOJI: str = os.getenv("CURRENCY_EMOJI", "✨")
 
     @property

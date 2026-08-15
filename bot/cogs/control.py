@@ -104,7 +104,7 @@ class ControlMainView(ui.View):
             embed = view.build_embed()
             await interaction.edit_original_response(embed=embed, view=view)
 
-    @ui.button(label="💰 نظام أورا والمتجر (Economy)", style=discord.ButtonStyle.secondary, emoji="✨", row=2)
+    @ui.button(label="💰 نظام أروا والمتجر (Economy)", style=discord.ButtonStyle.secondary, emoji="✨", row=2)
     async def economy_btn(self, interaction: discord.Interaction, button: ui.Button):
         await interaction.response.defer()
         async with AsyncSessionLocal() as session:
@@ -356,7 +356,7 @@ class LogsControlView(ui.View):
 
 # --- ECONOMY & SHOP INTERACTIVE CONTROL VIEW ---
 
-class GiveAuraModal(ui.Modal, title="💰 إضافة رصيد أورا لعضو"):
+class GiveAuraModal(ui.Modal, title="💰 إضافة رصيد أروا لعضو"):
     amount = ui.TextInput(label="المبلغ المراد إضافته", placeholder="1000", required=True)
     reason = ui.TextInput(label="السبب", placeholder="مكافأة نشاط", default="Control Panel Reward", required=False)
 
@@ -371,7 +371,7 @@ class GiveAuraModal(ui.Modal, title="💰 إضافة رصيد أورا لعضو"
             async with AsyncSessionLocal() as session:
                 eco_service = EconomyService(session)
                 wallet = await eco_service.add_balance(self.member.id, val, "WALLET", self.reason.value, actor_id=interaction.user.id)
-                await interaction.followup.send(embed=EmbedBuilder.success("تمت الإضافة", f"تم إضافة **`{val:,}`** أورا لحساب {self.member.mention}.\nالرصيد الحالي: `{wallet.balance:,}`"), ephemeral=True)
+                await interaction.followup.send(embed=EmbedBuilder.success("تمت الإضافة", f"تم إضافة **`{val:,}`** أروا لحساب {self.member.mention}.\nالرصيد الحالي: `{wallet.balance:,}`"), ephemeral=True)
         except Exception as e:
             await interaction.followup.send(f"❌ حدث خطأ: {e}", ephemeral=True)
 

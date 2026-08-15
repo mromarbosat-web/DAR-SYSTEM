@@ -93,20 +93,6 @@ class ShopCog(commands.Cog):
                         else:
                             await inter.response.defer()
 
-                    @discord.ui.button(label="🖼️ تصفح متجر البانرات", style=discord.ButtonStyle.primary, custom_id="shop_banners")
-                    async def open_banners(self, inter: discord.Interaction, button: discord.ui.Button):
-                        from bot.cogs.profile import BannerCarouselView
-                        async with AsyncSessionLocal() as sess:
-                            svc = ShopService(sess)
-                            prods = await svc.list_products(enabled_only=True)
-                            banners = [p for p in prods if p.type in ["BANNER", "COSMETIC"]]
-                            if not banners:
-                                await inter.response.send_message("❌ لا توجد بانرات مسجلة في المتجر حالياً.", ephemeral=True)
-                                return
-                            carousel = BannerCarouselView(banners, inter.user.id, 0)
-                            em = await carousel.get_current_embed(inter.user.id)
-                            await inter.response.send_message(embed=em, view=carousel, ephemeral=True)
-
                 view = ShopPaginationView(products, interaction.user.id)
                 await interaction.followup.send(embed=view.get_current_embed(), view=view)
 

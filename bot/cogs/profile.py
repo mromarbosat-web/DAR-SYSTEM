@@ -10,7 +10,7 @@ from bot.database.models.economy import ShopProduct, UserInventory
 from bot.utils.embeds import EmbedBuilder
 from bot.database.repositories.profile_repository import calculate_level_info, generate_xp_bar
 
-class ChangeBioModal(ui.Modal, title="✏️ تعديل الحالة الشخصية (2,000 أورا)"):
+class ChangeBioModal(ui.Modal, title="✏️ تعديل الحالة الشخصية (2,000 أروا)"):
     new_bio = ui.TextInput(
         label="اكتب حالتك الجديدة (Custom Status)",
         style=discord.TextStyle.paragraph,
@@ -107,7 +107,7 @@ class BannerCarouselView(ui.View):
             member = interaction.guild.get_member(interaction.user.id) or interaction.user
             success, msg, prod = await shop_service.buy_product(interaction.guild, member, banner.product_id)
             if success:
-                embed = EmbedBuilder.success("تم الشراء بنجاح", msg)
+                embed = EmbedBuilder.success("🖼️ تم شراء البانر بنجاح!", f"{msg}\n\n✨ يمكنك الآن تجهيزه واستخدامه في ملفك الشخصي عبر زر 'تجهيز للبروفايل' أدناه أو أمر `/setbanner`.")
             else:
                 embed = EmbedBuilder.error("فشل الشراء", msg)
             await interaction.followup.send(embed=embed, ephemeral=True)
@@ -159,7 +159,7 @@ class ProfileView(ui.View):
         super().__init__(timeout=180)
         self.target_member = target_member
 
-    @ui.button(label="تعديل الحالة (2,000 أورا)", style=discord.ButtonStyle.primary, emoji="✏️")
+    @ui.button(label="تعديل الحالة (2,000 أروا)", style=discord.ButtonStyle.primary, emoji="✏️")
     async def edit_bio_btn(self, interaction: discord.Interaction, button: ui.Button):
         if interaction.user.id != self.target_member.id:
             await interaction.response.send_message("❌ يمكنك تعديل حالتك الشخصية فقط في ملفك!", ephemeral=True)
@@ -226,7 +226,11 @@ class ProfileCog(commands.Cog):
             embed = await carousel.get_current_embed(interaction.user.id)
             await interaction.followup.send(embed=embed, view=carousel, ephemeral=True)
 
-    @app_commands.command(name="setbio", description="تغيير وتخصيص حالتك في الملف الشخصي مقابل 2,000 أورا")
+    @app_commands.command(name="بانرات", description="فتح متجر تصفح وشراء البانرات التفاعلي بالصور والأسهم")
+    async def arabic_banners_command(self, interaction: discord.Interaction):
+        await self.banners_command.callback(self, interaction)
+
+    @app_commands.command(name="setbio", description="تغيير وتخصيص حالتك في الملف الشخصي مقابل 2,000 أروا")
     @app_commands.describe(bio="الحالة الجديدة المراد وضعها (الحد الأقصى 200 حرف)")
     async def set_bio_command(self, interaction: discord.Interaction, bio: str):
         await interaction.response.defer(ephemeral=True)

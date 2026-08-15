@@ -41,7 +41,7 @@ class EconomySettings(Base):
     __tablename__ = "economy_settings"
 
     guild_id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
-    currency_name: Mapped[str] = mapped_column(String(50), default="أورا", nullable=False)
+    currency_name: Mapped[str] = mapped_column(String(50), default="أروا", nullable=False)
     currency_emoji: Mapped[str] = mapped_column(String(50), default="✨", nullable=False)
     daily_reward_amount: Mapped[int] = mapped_column(BigInteger, default=500, nullable=False)
     daily_streak_bonus: Mapped[int] = mapped_column(BigInteger, default=50, nullable=False)

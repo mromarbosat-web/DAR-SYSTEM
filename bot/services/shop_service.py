@@ -67,7 +67,7 @@ class ShopService:
                 ("النوع", f"`{product.type}`", True)
             ]
         )
-        await self.log_service.log_event(admin_member.guild, "moderation", log_embed)
+        await self.log_service.log_event(admin_member.guild, "economy", log_embed)
         return True, f"تمت إضافة المنتج `{product.name}` (ID: `#{product.product_id}`) للمتجر بنجاح!", product
 
     async def edit_product(
@@ -91,7 +91,7 @@ class ShopService:
                 ("السعر الحالي", f"`{product.price}` {settings.CURRENCY_NAME}", True)
             ]
         )
-        await self.log_service.log_event(admin_member.guild, "moderation", log_embed)
+        await self.log_service.log_event(admin_member.guild, "economy", log_embed)
         return True, f"تم تحديث بيانات المنتج `{product.name}` بنجاح!", product
 
     async def remove_product(
@@ -112,7 +112,7 @@ class ShopService:
                 title="حذف منتج من المتجر (Product Removed)",
                 description=f"قام الإداري {admin_member.mention} بحذف المنتج `#{product_id}` ({product.name})."
             )
-            await self.log_service.log_event(admin_member.guild, "moderation", log_embed)
+            await self.log_service.log_event(admin_member.guild, "economy", log_embed)
             return True, f"تم حذف المنتج `{product.name}` من المتجر بنجاح."
 
         return False, "فشلت عملية حذف المنتج."
@@ -155,7 +155,7 @@ class ShopService:
                 ("المبلغ المدفوع", f"`{product.price}` {settings.CURRENCY_NAME}", True)
             ]
         )
-        await self.log_service.log_event(guild, "moderation", log_embed)
+        await self.log_service.log_event(guild, "economy", log_embed)
 
         return True, f"{msg}{extra_msg}"
 

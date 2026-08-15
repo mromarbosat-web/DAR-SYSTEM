@@ -152,13 +152,12 @@ async def generate_profile_card(
     overlay = Image.new("RGBA", (card_w, card_h), (0, 0, 0, 0))
     draw_overlay = ImageDraw.Draw(overlay)
     
-    # Outer subtle dark glass framing - allows the banner art to shine through brightly
+    # Outer subtle dark glass framing - allows the banner art to shine through brightly with no harsh boxes
     draw_overlay.rounded_rectangle(
         [(10, 10), (card_w - 10, card_h - 10)],
         radius=18,
-        fill=(10, 12, 20, 110),
-        outline=(255, 255, 255, 60),
-        width=2
+        fill=(10, 12, 20, 25),
+        outline=None
     )
 
     card = Image.alpha_composite(bg_image, overlay)
@@ -229,15 +228,14 @@ async def generate_profile_card(
     bio_box_x1, bio_box_y1 = info_x, 82
     bio_box_x2, bio_box_y2 = card_w - 35, 142
     
-    # Glassy background for bio
+    # Glassy background for bio (transparent, no box outline)
     bio_overlay = Image.new("RGBA", (card_w, card_h), (0, 0, 0, 0))
     draw_bio_overlay = ImageDraw.Draw(bio_overlay)
     draw_bio_overlay.rounded_rectangle(
         [(bio_box_x1, bio_box_y1), (bio_box_x2, bio_box_y2)],
         radius=10,
-        fill=(14, 18, 32, 175),
-        outline=(255, 255, 255, 60),
-        width=1
+        fill=(14, 18, 32, 35),
+        outline=None
     )
     card = Image.alpha_composite(card, bio_overlay)
     draw = ImageDraw.Draw(card)
@@ -272,18 +270,18 @@ async def generate_profile_card(
     stat_overlay = Image.new("RGBA", (card_w, card_h), (0, 0, 0, 0))
     draw_stat_overlay = ImageDraw.Draw(stat_overlay)
 
-    # Box 1: Level & Rank
-    draw_stat_overlay.rounded_rectangle([(35, stat_y1), (275, stat_y2)], radius=12, fill=(14, 18, 30, 160), outline=(114, 137, 218, 90), width=1)
-    # Box 2: Aura Balance
-    draw_stat_overlay.rounded_rectangle([(290, stat_y1), (535, stat_y2)], radius=12, fill=(14, 18, 30, 160), outline=(255, 190, 40, 90), width=1)
-    # Box 3: XP Stats
-    draw_stat_overlay.rounded_rectangle([(550, stat_y1), (805, stat_y2)], radius=12, fill=(14, 18, 30, 160), outline=(80, 210, 255, 90), width=1)
+    # Box 1: Level & Rank (transparent, no outline)
+    draw_stat_overlay.rounded_rectangle([(35, stat_y1), (275, stat_y2)], radius=12, fill=(14, 18, 30, 30), outline=None)
+    # Box 2: Balance (transparent, no outline)
+    draw_stat_overlay.rounded_rectangle([(290, stat_y1), (535, stat_y2)], radius=12, fill=(14, 18, 30, 30), outline=None)
+    # Box 3: XP Stats (transparent, no outline)
+    draw_stat_overlay.rounded_rectangle([(550, stat_y1), (805, stat_y2)], radius=12, fill=(14, 18, 30, 30), outline=None)
     
     # Bottom Progress Bar Container Glass
     bar_x1, bar_y1 = 35, 248
     bar_x2, bar_y2 = 805, 274
     bar_w = bar_x2 - bar_x1
-    draw_stat_overlay.rounded_rectangle([(bar_x1, bar_y1), (bar_x2, bar_y2)], radius=10, fill=(14, 18, 30, 175), outline=(255, 255, 255, 40), width=1)
+    draw_stat_overlay.rounded_rectangle([(bar_x1, bar_y1), (bar_x2, bar_y2)], radius=10, fill=(14, 18, 30, 35), outline=None)
     
     card = Image.alpha_composite(card, stat_overlay)
     draw = ImageDraw.Draw(card)
