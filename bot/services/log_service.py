@@ -12,6 +12,33 @@ class LogService:
         self.session = session
         self.repo = LogRepository(session)
 
+    async def get_log_settings(self, guild_id: int):
+        return await self.repo.get_log_settings(guild_id)
+
+    async def update_log_settings(self, guild_id: int, **kwargs):
+        logs = await self.repo.get_log_settings(guild_id)
+        field_map = {
+            "member_logs_channel_id": "member_log_channel_id",
+            "message_logs_channel_id": "message_log_channel_id",
+            "moderation_logs_channel_id": "moderation_log_channel_id",
+            "role_logs_channel_id": "role_log_channel_id",
+            "channel_logs_channel_id": "channel_log_channel_id",
+            "server_logs_channel_id": "server_log_channel_id",
+            "security_logs_channel_id": "security_log_channel_id",
+            "voice_logs_channel_id": "voice_log_channel_id",
+            "invite_logs_channel_id": "invite_log_channel_id",
+            "economy_logs_channel_id": "economy_log_channel_id",
+            "verification_logs_channel_id": "verification_log_channel_id",
+            "automod_logs_channel_id": "automod_log_channel_id",
+        }
+        for k, v in kwargs.items():
+            db_field = field_map.get(k, k)
+            if hasattr(logs, db_field):
+                setattr(logs, db_field, v)
+        await self.session.commit()
+        await self.session.refresh(logs)
+        return logs
+
     async def log_event(
         self,
         guild: discord.Guild,
