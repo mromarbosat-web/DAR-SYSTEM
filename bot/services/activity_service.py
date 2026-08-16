@@ -77,24 +77,25 @@ class ActivityService:
         limit: int = 10
     ) -> List[Dict[str, Any]]:
         """
-        Fetches top 10 rows and enriches them with discord member profile data (names & avatars), level, and XP.
+        Fetches top members strictly sorted by Level DESC, then XP DESC (tie-breaker),
+        and activity score DESC, directly from the database source.
+        Ranks (1..10) are assigned sequentially after strict multi-tier sorting.
         """
-        raw_rows = await self.repo.get_top_leaderboard(guild.id, activity_type=activity_type, period=period, limit=limit)
+        raw_rows = await self.repo.get_top_leaderboard_by_level_and_xp(
+            guild.id, activity_type=activity_type, period=period, limit=limit
+        )
         entries: List[Dict[str, Any]] = []
 
-        user_ids = [r[0] for r in raw_rows]
-        profile_map = {}
-        if user_ids:
-            try:
-                stmt = select(UserProfile).where(UserProfile.user_id.in_(user_ids))
-                res = await self.session.execute(stmt)
-                profiles = res.scalars().all()
-                for p in profiles:
-                    profile_map[p.user_id] = p
-            except Exception as e:
-                logger.debug(f"Failed to bulk fetch user profiles for leaderboard: {e}")
+        for row in raw_rows:
+            user_id = row["user_id"]
+            raw_xp = row.get("xp", 0)
+            raw_lvl = row.get("level", 1)
+            score = row.get("score", 0)
 
-        for rank, (user_id, score) in enumerate(raw_rows, start=1):
+            # Re-calculate level from XP to guarantee 100% mathematical consistency
+            calc_lvl, cur_xp, needed_xp, prog = calculate_level_info(raw_xp)
+            final_lvl = max(raw_lvl, calc_lvl)
+
             member = guild.get_member(user_id)
             if member:
                 name = member.name
@@ -103,24 +104,27 @@ class ActivityService:
                 name = f"User {user_id}"
                 avatar_url = ""
 
-            p = profile_map.get(user_id)
-            if p:
-                lvl, cur_xp, needed_xp, prog = calculate_level_info(p.xp)
-                xp_val = p.xp
-            else:
-                fallback_xp = score * 15 if activity_type == "text" else score * 2
-                lvl, cur_xp, needed_xp, prog = calculate_level_info(fallback_xp)
-                xp_val = fallback_xp
-
             entries.append({
-                "rank": rank,
                 "user_id": user_id,
                 "name": name,
                 "avatar_url": avatar_url,
                 "score": score,
-                "level": lvl,
-                "xp": xp_val
+                "level": final_lvl,
+                "xp": raw_xp
             })
+
+        # Strict Multi-level Sorting:
+        # 1. Level DESC
+        # 2. XP DESC
+        # 3. Score DESC
+        entries.sort(key=lambda e: (e["level"], e["xp"], e["score"]), reverse=True)
+
+        # Slice to requested limit (top 10)
+        entries = entries[:limit]
+
+        # Generate Rank sequentially after proper sorting
+        for rank, entry in enumerate(entries, start=1):
+            entry["rank"] = rank
 
         return entries
 
@@ -175,7 +179,7 @@ class ActivityService:
             for e in entries[:3]:
                 medal = "🥇" if e["rank"] == 1 else ("🥈" if e["rank"] == 2 else "🥉")
                 score_str = format_activity_score(activity_type, e["score"])
-                top_3_text.append(f"{medal} **#{e['rank']}** <@{e['user_id']}> — `{score_str}`")
+                top_3_text.append(f"{medal} **#{e['rank']}** <@{e['user_id']}> — Level **{e['level']}** (`{e['xp']:,}` XP) • `{score_str}`")
 
             if top_3_text:
                 embed.add_field(name="👑 مراتب الشرف (Top 3)", value="\n".join(top_3_text), inline=False)
@@ -183,7 +187,7 @@ class ActivityService:
             remaining_text = []
             for e in entries[3:]:
                 score_str = format_activity_score(activity_type, e["score"])
-                remaining_text.append(f"`#{e['rank']:02d}` <@{e['user_id']}> • `{score_str}`")
+                remaining_text.append(f"`#{e['rank']:02d}` <@{e['user_id']}> • Level **{e['level']}** (`{e['xp']:,}` XP) • `{score_str}`")
 
             if remaining_text:
                 embed.add_field(name="🎖️ المراكز (4 - 10)", value="\n".join(remaining_text), inline=False)

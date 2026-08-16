@@ -116,6 +116,74 @@ class ActivityRepository:
             logger.error(f"Failed to fetch leaderboard for {activity_type}/{period}: {e}")
             return []
 
+    async def get_top_leaderboard_by_level_and_xp(
+        self,
+        guild_id: int,
+        activity_type: str = "text",
+        period: str = "daily",
+        limit: int = 10
+    ) -> List[Dict[str, Any]]:
+        """
+        Retrieves top members strictly ranked by Level DESC, then XP DESC (tie-breaker),
+        along with their activity score for the requested period directly from the data source.
+        """
+        try:
+            col_name = "messages_count" if activity_type == "text" else "voice_seconds"
+            today = date.today()
+
+            date_clause = ""
+            params: Dict[str, object] = {"guild_id": guild_id, "limit": limit}
+
+            if period == "daily":
+                date_clause = "AND ma.activity_date = :start_date"
+                params["start_date"] = today
+            elif period == "weekly":
+                date_clause = "AND ma.activity_date >= :start_date"
+                params["start_date"] = today - timedelta(days=6)
+            elif period == "monthly":
+                date_clause = "AND ma.activity_date >= :start_date"
+                params["start_date"] = today - timedelta(days=29)
+            elif period == "all_time":
+                date_clause = ""
+
+            sql = f"""
+                WITH activity_agg AS (
+                    SELECT 
+                        ma.user_id,
+                        SUM(ma.{col_name}) AS act_score
+                    FROM member_activity ma
+                    WHERE ma.guild_id = :guild_id {date_clause}
+                    GROUP BY ma.user_id
+                )
+                SELECT 
+                    COALESCE(up.user_id, aa.user_id) AS user_id,
+                    COALESCE(up.level, 1) AS level,
+                    COALESCE(up.xp, 0) AS xp,
+                    COALESCE(aa.act_score, 0) AS score
+                FROM user_profiles up
+                FULL OUTER JOIN activity_agg aa ON up.user_id = aa.user_id
+                WHERE COALESCE(up.xp, 0) > 0 OR COALESCE(aa.act_score, 0) > 0
+                ORDER BY 
+                    COALESCE(up.level, 1) DESC, 
+                    COALESCE(up.xp, 0) DESC, 
+                    COALESCE(aa.act_score, 0) DESC
+                LIMIT :limit;
+            """
+            result = await self.session.execute(text(sql), params)
+            rows = result.all()
+            return [
+                {
+                    "user_id": int(r[0]),
+                    "level": int(r[1]),
+                    "xp": int(r[2]),
+                    "score": int(r[3])
+                }
+                for r in rows
+            ]
+        except Exception as e:
+            logger.error(f"Failed to fetch level/xp leaderboard: {e}")
+            return []
+
     async def get_user_rank_and_score(
         self,
         guild_id: int,

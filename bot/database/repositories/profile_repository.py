@@ -191,14 +191,17 @@ class ProfileRepository:
         return list(res.scalars().all())
 
     async def get_xp_leaderboard(self, limit: int = 10) -> List[UserProfile]:
-        stmt = select(UserProfile).order_by(UserProfile.xp.desc()).limit(limit)
+        stmt = select(UserProfile).order_by(UserProfile.level.desc(), UserProfile.xp.desc()).limit(limit)
         res = await self.session.execute(stmt)
         return list(res.scalars().all())
 
     async def get_user_rank(self, user_id: int) -> int:
-        """Returns the global rank position of a user based on XP"""
+        """Returns the global rank position of a user based on Level DESC, then XP DESC"""
         profile = await self.get_or_create_profile(user_id)
-        stmt = select(func.count(UserProfile.user_id)).where(UserProfile.xp > profile.xp)
+        stmt = select(func.count(UserProfile.user_id)).where(
+            (UserProfile.level > profile.level) | 
+            ((UserProfile.level == profile.level) & (UserProfile.xp > profile.xp))
+        )
         res = await self.session.execute(stmt)
         higher_count = res.scalar_one() or 0
         return higher_count + 1
