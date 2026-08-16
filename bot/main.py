@@ -107,11 +107,15 @@ async def main():
         try:
             logger.info("Starting Security & Management Discord Bot...")
             await bot.start(settings.DISCORD_BOT_TOKEN)
-        except KeyboardInterrupt:
+        except (KeyboardInterrupt, asyncio.CancelledError):
             logger.info("Shutdown signal received.")
-            await bot.close()
         except Exception as e:
             logger.critical(f"Fatal error during bot execution: {e}", exc_info=True)
+        finally:
+            if not bot.is_closed():
+                await bot.close()
+            # Allow underlying SSL and aiohttp connectors to terminate cleanly
+            await asyncio.sleep(0.25)
     else:
         logger.info("Bot execution paused because DISCORD_BOT_TOKEN is empty.")
 

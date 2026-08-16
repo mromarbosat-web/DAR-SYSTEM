@@ -1,6 +1,6 @@
 import logging
 from datetime import date, datetime, timedelta
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Dict, Any
 from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
