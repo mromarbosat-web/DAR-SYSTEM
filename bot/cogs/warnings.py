@@ -481,5 +481,51 @@ class WarningsCog(commands.Cog):
             new_settings = await service.update_settings(interaction.guild_id, **updates)
             await interaction.followup.send("✅ تم تحديث إعدادات نظام التحذيرات بنجاح.")
 
+    @warning_group.command(name="set_channel", description="تحديد روم مخصص لإرسال لوج وسجلات التحذيرات والعقوبات")
+    @app_commands.describe(channel="الروم المراد تعيينه لإرسال لوج التحذيرات")
+    async def set_channel_subcommand(self, interaction: discord.Interaction, channel: discord.TextChannel):
+        await interaction.response.defer(ephemeral=False)
+        if not interaction.user.guild_permissions.manage_guild and not interaction.user.guild_permissions.administrator:
+            await interaction.followup.send("❌ يتطلب هذا الأمر صلاحية إدارة السيرفر (Manage Server).", ephemeral=True)
+            return
+
+        async with AsyncSessionLocal() as session:
+            service = WarningService(session)
+            await service.update_settings(interaction.guild_id, evidence_channel_id=channel.id)
+            embed = discord.Embed(
+                title="✅ تم تحديد روم لوج التحذيرات بنجاح",
+                description=f"سيقوم البوت الآن بإرسال تفاصيل كافة التحذيرات وسجلاتها المنظمة إلى الروم: {channel.mention}\n\n"
+                            f"**محتويات اللوج:**\n"
+                            f"• اسم صاحب التحذير والآيدي والمنشن\n"
+                            f"• اسم المشرف محذر العضو\n"
+                            f"• معرف التحذير (#ID و UUID)\n"
+                            f"• نوع التحذير ومدة صلاحيته\n"
+                            f"• سبب التحذير والدليل المرفق",
+                color=discord.Color.green(),
+                timestamp=discord.utils.utcnow()
+            )
+            await interaction.followup.send(embed=embed)
+
+    @app_commands.command(name="setwarningchannel", description="تحديد روم مخصص لإرسال لوج وسجلات التحذيرات")
+    @app_commands.describe(channel="الروم المراد تعيينه لإرسال لوج التحذيرات")
+    async def set_warning_channel_cmd(self, interaction: discord.Interaction, channel: discord.TextChannel):
+        await self.set_channel_subcommand.callback(self, interaction, channel)
+
+    @app_commands.command(name="قناة_التحذيرات", description="تحديد روم مخصص لإرسال لوج وسجلات التحذيرات")
+    @app_commands.describe(channel="الروم المراد تعيينه لإرسال لوج التحذيرات")
+    async def arabic_set_warning_channel_cmd(self, interaction: discord.Interaction, channel: discord.TextChannel):
+        await self.set_channel_subcommand.callback(self, interaction, channel)
+
+    @warning_group.command(name="channel", description="عرض القناة المحددة حالياً للوج التحذيرات")
+    async def view_warning_channel_subcommand(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        async with AsyncSessionLocal() as session:
+            service = WarningService(session)
+            settings = await service.get_settings(interaction.guild_id)
+            if settings.evidence_channel_id:
+                await interaction.followup.send(f"📋 روم لوج التحذيرات الحالي هو: <#{settings.evidence_channel_id}>", ephemeral=True)
+            else:
+                await interaction.followup.send("⚠️ لم يتم تحديد روم للوج التحذيرات بعد. يمكنك تحديده باستخدام `/warning set_channel` أو `/setwarningchannel`.", ephemeral=True)
+
 async def setup(bot: commands.Bot):
     await bot.add_cog(WarningsCog(bot))

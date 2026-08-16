@@ -33,9 +33,13 @@ class ProfileService:
         xp_gain = random.randint(min_xp, max_xp)
         return await self.profile_repo.add_xp(user_id, xp_gain, cooldown_seconds=60)
 
-    async def set_bio(self, user_id: int, new_bio: str) -> Tuple[bool, str]:
-        """Changes user status/bio for 2000 Aura"""
-        return await self.profile_repo.set_custom_bio(user_id, new_bio, cost=2000)
+    async def set_bio(self, user_id: int, new_bio: str, bio_color: Optional[str] = None) -> Tuple[bool, str]:
+        """Changes user status/bio for 2000 Aura with optional color"""
+        return await self.profile_repo.set_custom_bio(user_id, new_bio, cost=2000, bio_color=bio_color)
+
+    async def set_bio_color(self, user_id: int, new_color: str) -> Tuple[bool, str]:
+        """Changes profile status text color"""
+        return await self.profile_repo.set_bio_color(user_id, new_color)
 
     async def equip_banner(self, user_id: int, product_id: int) -> Tuple[bool, str]:
         return await self.profile_repo.equip_banner(user_id, product_id)
@@ -61,6 +65,7 @@ class ProfileService:
             member=member,
             banner_url=profile.equipped_banner_url,
             bio=profile.bio,
+            bio_color=profile.bio_color or "#FFFFFF",
             level=level,
             rank=rank,
             cur_xp=cur_xp,

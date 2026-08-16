@@ -10,7 +10,16 @@ from bot.database.models.economy import ShopProduct, UserInventory, Wallet, Tran
 logger = logging.getLogger("discord_bot.shop_repository")
 
 DEFAULT_BANNERS = [
-    # --- 1-24: Anime, Manga, Cyberpunk & Japanese Culture ---
+    # --- 1-7: NEW Dedicated Anime Collection (بانرات الأنمي الجديدة) ---
+    {"key": "Anime Samurai Moonlight", "price": 5000, "emoji": "⚔️", "data": "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1200&h=600&fit=crop&q=80"},
+    {"key": "Anime Cyber Sakura", "price": 5500, "emoji": "🌸", "data": "https://images.unsplash.com/photo-1528164344705-475426879c0d?w=1200&h=600&fit=crop&q=80"},
+    {"key": "Anime Spirit Shrine", "price": 6000, "emoji": "⛩️", "data": "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=1200&h=600&fit=crop&q=80"},
+    {"key": "Anime Galaxy Horizon", "price": 6500, "emoji": "🌌", "data": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&h=600&fit=crop&q=80"},
+    {"key": "Anime Neo Tokyo City", "price": 7000, "emoji": "🏙️", "data": "https://images.unsplash.com/photo-1514565131-fce0801e5785?w=1200&h=600&fit=crop&q=80"},
+    {"key": "Anime Cyber Katana", "price": 7500, "emoji": "⚡", "data": "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=1200&h=600&fit=crop&q=80"},
+    {"key": "Anime Lanterns Alley", "price": 8000, "emoji": "🏮", "data": "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=1200&h=600&fit=crop&q=80"},
+
+    # --- Classic Collection with Fixed URLs (#12, #16, #21, #27 replaced with pristine high-res images) ---
     {"key": "Banner #1", "price": 5000, "emoji": "⚔️", "data": "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #2", "price": 5500, "emoji": "🛡️", "data": "https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #3", "price": 6000, "emoji": "🗡️", "data": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&h=600&fit=crop&q=80"},
@@ -22,24 +31,24 @@ DEFAULT_BANNERS = [
     {"key": "Banner #9", "price": 9000, "emoji": "🤖", "data": "https://images.unsplash.com/photo-1534447677768-be436bb09401?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #10", "price": 9500, "emoji": "⛩️", "data": "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #11", "price": 10000, "emoji": "🍥", "data": "https://images.unsplash.com/photo-1563089145-599997674d42?w=1200&h=600&fit=crop&q=80"},
-    {"key": "Banner #12", "price": 10500, "emoji": "🌸", "data": "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=1200&h=600&fit=crop&q=80"},
+    {"key": "Banner #12", "price": 10500, "emoji": "🌸", "data": "https://images.unsplash.com/photo-1528164344705-475426879c0d?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #13", "price": 11000, "emoji": "🏮", "data": "https://images.unsplash.com/photo-1509198397868-475647b2a1e5?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #14", "price": 11500, "emoji": "🍵", "data": "https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #15", "price": 12000, "emoji": "🐱", "data": "https://images.unsplash.com/photo-1511447333015-45b65e60f6d5?w=1200&h=600&fit=crop&q=80"},
-    {"key": "Banner #16", "price": 12500, "emoji": "⚡", "data": "https://images.unsplash.com/photo-1563245372-f21724e3856d?w=1200&h=600&fit=crop&q=80"},
+    {"key": "Banner #16", "price": 12500, "emoji": "⚡", "data": "https://images.unsplash.com/photo-1514565131-fce0801e5785?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #17", "price": 13000, "emoji": "🕹️", "data": "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #18", "price": 13500, "emoji": "🐉", "data": "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #19", "price": 14000, "emoji": "🎌", "data": "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #20", "price": 14500, "emoji": "🗾", "data": "https://images.unsplash.com/photo-1536098561742-ca998e48cbcc?w=1200&h=600&fit=crop&q=80"},
-    {"key": "Banner #21", "price": 15000, "emoji": "🏯", "data": "https://images.unsplash.com/photo-1492571350019-22de08371fd3?w=1200&h=600&fit=crop&q=80"},
+    {"key": "Banner #21", "price": 15000, "emoji": "✨", "data": "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #22", "price": 15500, "emoji": "🌃", "data": "https://images.unsplash.com/photo-1519501025264-65ba15a82390?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #23", "price": 16000, "emoji": "👘", "data": "https://images.unsplash.com/photo-1524413840807-0c3cb6fa808d?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #24", "price": 16500, "emoji": "🦊", "data": "https://images.unsplash.com/photo-1474511320723-9a56873867b5?w=1200&h=600&fit=crop&q=80"},
 
-    # --- 25-33: Sports & Gaming ---
+    # --- Sports & Gaming ---
     {"key": "Banner #25", "price": 6000, "emoji": "🎮", "data": "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #26", "price": 6500, "emoji": "🏀", "data": "https://images.unsplash.com/photo-1546519638-68e109498ffc?w=1200&h=600&fit=crop&q=80"},
-    {"key": "Banner #27", "price": 7000, "emoji": "🏈", "data": "https://images.unsplash.com/photo-1566577739112-5180d4bf9390?w=1200&h=600&fit=crop&q=80"},
+    {"key": "Banner #27", "price": 7000, "emoji": "🎯", "data": "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #28", "price": 8000, "emoji": "🥊", "data": "https://images.unsplash.com/photo-1517649763962-0c623066013b?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #29", "price": 8500, "emoji": "🏎️", "data": "https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #30", "price": 9000, "emoji": "🛹", "data": "https://images.unsplash.com/photo-1520045892732-304bc3ac5d8e?w=1200&h=600&fit=crop&q=80"},
@@ -47,7 +56,7 @@ DEFAULT_BANNERS = [
     {"key": "Banner #32", "price": 10000, "emoji": "⛷️", "data": "https://images.unsplash.com/photo-1551698618-1dfe5d97d256?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #33", "price": 11000, "emoji": "🏆", "data": "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?w=1200&h=600&fit=crop&q=80"},
 
-    # --- 34-42: Islamic Architecture & Culture ---
+    # --- Islamic Architecture & Culture ---
     {"key": "Banner #34", "price": 8000, "emoji": "🕌", "data": "https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #35", "price": 8500, "emoji": "🕋", "data": "https://images.unsplash.com/photo-1591604129939-f1efa4d9f7fa?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #36", "price": 9000, "emoji": "📿", "data": "https://images.unsplash.com/photo-1564769625905-50e93615e769?w=1200&h=600&fit=crop&q=80"},
@@ -58,7 +67,7 @@ DEFAULT_BANNERS = [
     {"key": "Banner #41", "price": 11500, "emoji": "🏮", "data": "https://images.unsplash.com/photo-1514565131-fce0801e5785?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #42", "price": 12000, "emoji": "🕯️", "data": "https://images.unsplash.com/photo-1588668214407-6ea9a6d8c272?w=1200&h=600&fit=crop&q=80"},
 
-    # --- 43-51: Nature & Landscapes ---
+    # --- Nature & Landscapes ---
     {"key": "Banner #43", "price": 7000, "emoji": "🌲", "data": "https://images.unsplash.com/photo-1448375240586-882707db888b?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #44", "price": 7500, "emoji": "⛰️", "data": "https://images.unsplash.com/photo-1454496522488-7a8e488e8606?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #45", "price": 8000, "emoji": "🌊", "data": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1200&h=600&fit=crop&q=80"},
@@ -69,7 +78,7 @@ DEFAULT_BANNERS = [
     {"key": "Banner #50", "price": 10500, "emoji": "🏞️", "data": "https://images.unsplash.com/photo-1542224566-6e85f2e6772f?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #51", "price": 11000, "emoji": "🍁", "data": "https://images.unsplash.com/photo-1473448912268-2022ce9509d8?w=1200&h=600&fit=crop&q=80"},
 
-    # --- 52-60: Universe & Space & Natural Wonders ---
+    # --- Universe & Space & Natural Wonders ---
     {"key": "Banner #52", "price": 11500, "emoji": "🌿", "data": "https://images.unsplash.com/photo-1518495973542-4542c06a5843?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #53", "price": 12000, "emoji": "🌌", "data": "https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=1200&h=600&fit=crop&q=80"},
     {"key": "Banner #54", "price": 12500, "emoji": "🌲", "data": "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1200&h=600&fit=crop&q=80"},

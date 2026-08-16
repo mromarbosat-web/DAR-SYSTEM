@@ -130,32 +130,71 @@ class WarningService:
         if not channel or not isinstance(channel, discord.TextChannel):
             return
 
+        is_formal = warning.warning_type == "formal"
         embed = discord.Embed(
-            title=f"📋 سجل أدلة تحذير | ID: `{warning.warning_id}`",
-            color=discord.Color.red() if warning.warning_type == "formal" else discord.Color.gold(),
+            title=f"⚠️ سجل إصدار تحذير | Case #{warning.local_id}",
+            color=discord.Color.red() if is_formal else discord.Color.gold(),
             timestamp=datetime.now(timezone.utc)
         )
-        embed.add_field(name="العضو المحذر", value=f"{target.mention} (`{target.id}`)", inline=True)
-        embed.add_field(name="المشرف المسؤول", value=f"{issuer.mention} (`{issuer.id}`)", inline=True)
-        embed.add_field(name="نوع التحذير", value="تحذير رسمي (Formal)" if warning.warning_type == "formal" else "تحذير شفهي (Verbal)", inline=True)
-        embed.add_field(name="السبب", value=warning.reason, inline=False)
+
+        # 1. Target (صاحب التحذير)
+        embed.add_field(
+            name="👤 اسم صاحب التحذير (المعاقب)",
+            value=f"• **الاسم:** `{target.name}`\n• **المنشن:** {target.mention}\n• **الأيدي:** `{target.id}`",
+            inline=True
+        )
+
+        # 2. Issuer (من قام بالتحذير)
+        embed.add_field(
+            name="👮 اسم من قام بالتحذير (المشرف)",
+            value=f"• **الاسم:** `{issuer.name}`\n• **المنشن:** {issuer.mention}\n• **الأيدي:** `{issuer.id}`",
+            inline=True
+        )
+
+        # 3. Warning ID (معرف التحذير)
+        embed.add_field(
+            name="🆔 معرف التحذير",
+            value=f"• **الرقم المحلي:** `#{warning.local_id}`\n• **المعرف الفريد:** `{warning.warning_id}`",
+            inline=False
+        )
+
+        # 4. Warning Type & Duration (نوع ومدة التحذير)
         if warning.expires_at:
             exp_ts = int(warning.expires_at.timestamp())
-            embed.add_field(name="تاريخ الانتهاء", value=f"<t:{exp_ts}:R>", inline=True)
+            dur_str = f"<t:{exp_ts}:F> (<t:{exp_ts}:R>)"
         else:
-            embed.add_field(name="المدة", value="دائم", inline=True)
+            dur_str = "دائم (Permanent)"
 
+        type_str = "🔴 تحذير رسمي (Formal Warning)" if is_formal else "🟡 تحذير شفهي (Verbal Warning)"
+        embed.add_field(name="📌 نوع التحذير", value=type_str, inline=True)
+        embed.add_field(name="⏳ مدة إصدار التحذير", value=dur_str, inline=True)
+
+        # 5. Reason (سبب التحذير)
+        embed.add_field(
+            name="📝 سبب التحذير",
+            value=f"```\n{warning.reason}\n```",
+            inline=False
+        )
+
+        # 6. Evidence (دليل التحذير إن وجد)
         if warning.evidence_url:
-            embed.add_field(name="رابط الدليل", value=f"[اضغط هنا لرؤية الدليل]({warning.evidence_url})", inline=False)
+            embed.add_field(
+                name="🔗 دليل التحذير",
+                value=f"[اضغط هنا لفتح رابط الدليل]({warning.evidence_url})",
+                inline=False
+            )
             if warning.evidence_url.lower().endswith(('.jpg', '.png', '.jpeg', '.gif', '.webp')):
                 embed.set_image(url=warning.evidence_url)
 
-        embed.set_footer(text=f"Guild ID: {guild.id}")
+        if hasattr(target, "display_avatar") and target.display_avatar:
+            embed.set_thumbnail(url=target.display_avatar.url)
+
+        embed.set_footer(text=f"Guild: {guild.name} • Server ID: {guild.id}")
 
         try:
             await channel.send(embed=embed)
         except Exception as e:
-            logger.error(f"Failed to send evidence log embed: {e}")
+            logger.error(f"Failed to send warning log embed: {e}")
 
     async def apply_staff_demotion(
         self,

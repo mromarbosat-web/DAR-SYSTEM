@@ -51,6 +51,7 @@ class ProfileRepository:
                 xp=0,
                 level=1,
                 bio="مرحباً بك في ملفي الشخصي!",
+                bio_color="#FFFFFF",
                 equipped_banner_url="https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=1000&auto=format&fit=crop&q=80",
                 equipped_banner_name="الافتراضي (Cosmic Default)",
                 messages_count=0
@@ -94,9 +95,9 @@ class ProfileRepository:
         await self.session.refresh(profile)
         return profile, leveled_up, new_level
 
-    async def set_custom_bio(self, user_id: int, new_bio: str, cost: int = 2000) -> Tuple[bool, str]:
+    async def set_custom_bio(self, user_id: int, new_bio: str, cost: int = 2000, bio_color: Optional[str] = None) -> Tuple[bool, str]:
         """
-        Updates user custom bio/status for a cost in Aura.
+        Updates user custom bio/status and optional text color for a cost in Aura.
         """
         if len(new_bio.strip()) == 0:
             return False, "لا يمكن أن تكون الحالة فارغة!"
@@ -121,6 +122,8 @@ class ProfileRepository:
         # Update profile
         profile = await self.get_or_create_profile(user_id)
         profile.bio = new_bio.strip()
+        if bio_color:
+            profile.bio_color = bio_color.strip()
         profile.updated_at = utc_now()
 
         # Record Transaction
@@ -135,6 +138,14 @@ class ProfileRepository:
         self.session.add(tx)
         await self.session.commit()
         return True, f"تم تحديث حالتك الشخصية بنجاح وخصم `{cost}` {settings.CURRENCY_NAME}!"
+
+    async def set_bio_color(self, user_id: int, new_color: str, cost: int = 0) -> Tuple[bool, str]:
+        """Updates profile status text color."""
+        profile = await self.get_or_create_profile(user_id)
+        profile.bio_color = new_color.strip()
+        profile.updated_at = utc_now()
+        await self.session.commit()
+        return True, f"تم تغيير لون نص الحالة إلى `{new_color}` بنجاح!"
 
     async def equip_banner(self, user_id: int, product_id: int) -> Tuple[bool, str]:
         """

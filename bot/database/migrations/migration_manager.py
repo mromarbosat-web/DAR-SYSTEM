@@ -142,12 +142,25 @@ async def migrate_member_activity_table():
             logger.error(f"member_activity migration failed: {e}")
             raise e
 
+async def migrate_user_profile_columns():
+    """Adds bio_color and any missing columns to user_profiles table safely."""
+    async with AsyncSessionLocal() as session:
+        try:
+            logger.info("Checking and running migrations for user_profiles table...")
+            await session.execute(text("ALTER TABLE user_profiles ADD COLUMN IF NOT EXISTS bio_color VARCHAR(50) DEFAULT '#FFFFFF';"))
+            await session.commit()
+            logger.info("Successfully checked/added bio_color column to user_profiles.")
+        except Exception as e:
+            await session.rollback()
+            logger.error(f"user_profiles migration error: {e}")
+
 async def run_migrations():
     """Runs all necessary database migrations."""
     logger.info("Starting database migrations...")
     await add_local_id_column()
     await migrate_command_shortcuts_columns()
     await migrate_member_activity_table()
+    await migrate_user_profile_columns()
     logger.info("All migrations completed successfully.")
 
 if __name__ == "__main__":

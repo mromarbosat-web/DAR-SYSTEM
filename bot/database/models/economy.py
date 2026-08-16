@@ -64,6 +64,7 @@ class UserProfile(Base):
     xp: Mapped[int] = mapped_column(BigInteger, default=0, nullable=False)
     level: Mapped[int] = mapped_column(Integer, default=1, nullable=False)
     bio: Mapped[str] = mapped_column(String(300), default="مرحباً بك في ملفي الشخصي!", nullable=False)
+    bio_color: Mapped[Optional[str]] = mapped_column(String(50), default="#FFFFFF", nullable=True)
     equipped_banner_id: Mapped[int] = mapped_column(Integer, ForeignKey("shop_products.product_id", ondelete="SET NULL"), nullable=True)
     equipped_banner_url: Mapped[str] = mapped_column(String(500), nullable=True)
     equipped_banner_name: Mapped[str] = mapped_column(String(100), default="الافتراضي", nullable=False)

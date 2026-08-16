@@ -98,6 +98,69 @@ def make_circle_avatar(avatar_img: Image.Image, size: int) -> Image.Image:
     output.paste(avatar_img, (0, 0), mask)
     return output
 
+def parse_color_to_rgba(color_str: Optional[str], default_rgba: Tuple[int, int, int, int] = (245, 250, 255, 255)) -> Tuple[int, int, int, int]:
+    """Converts a color string (hex code or standard color name) to an RGBA tuple."""
+    if not color_str:
+        return default_rgba
+
+    c = color_str.strip().lower()
+    
+    # Predefined color names
+    named_colors = {
+        "gold": (255, 215, 0, 255),
+        "yellow": (255, 235, 59, 255),
+        "cyan": (0, 229, 255, 255),
+        "neon_blue": (0, 200, 255, 255),
+        "blue": (59, 130, 246, 255),
+        "green": (52, 211, 153, 255),
+        "emerald": (16, 185, 129, 255),
+        "lime": (132, 204, 22, 255),
+        "red": (248, 113, 113, 255),
+        "crimson": (239, 68, 68, 255),
+        "pink": (244, 114, 182, 255),
+        "rose": (251, 113, 133, 255),
+        "purple": (192, 132, 252, 255),
+        "violet": (167, 139, 250, 255),
+        "orange": (251, 146, 60, 255),
+        "amber": (245, 158, 11, 255),
+        "white": (255, 255, 255, 255),
+        "silver": (226, 232, 240, 255),
+        "gray": (156, 163, 175, 255),
+    }
+    if c in named_colors:
+        return named_colors[c]
+
+    # Hex parsing
+    if c.startswith("#"):
+        c = c[1:]
+    if len(c) == 3:
+        try:
+            r = int(c[0] * 2, 16)
+            g = int(c[1] * 2, 16)
+            b = int(c[2] * 2, 16)
+            return (r, g, b, 255)
+        except ValueError:
+            pass
+    elif len(c) == 6:
+        try:
+            r = int(c[0:2], 16)
+            g = int(c[2:4], 16)
+            b = int(c[4:6], 16)
+            return (r, g, b, 255)
+        except ValueError:
+            pass
+    elif len(c) == 8:
+        try:
+            r = int(c[0:2], 16)
+            g = int(c[2:4], 16)
+            b = int(c[4:6], 16)
+            a = int(c[6:8], 16)
+            return (r, g, b, a)
+        except ValueError:
+            pass
+
+    return default_rgba
+
 async def generate_profile_card(
     member: discord.Member,
     banner_url: Optional[str],
@@ -109,7 +172,8 @@ async def generate_profile_card(
     progress_percent: float,
     total_balance: int,
     currency_name: str,
-    currency_emoji: str = "✨"
+    currency_emoji: str = "✨",
+    bio_color: Optional[str] = "#FFFFFF"
 ) -> Optional[io.BytesIO]:
     """
     Generates a high-definition, standalone Profile Card PNG containing:
@@ -196,7 +260,7 @@ async def generate_profile_card(
     font_medium = get_latin_font(16, bold=True)
     font_small = get_system_font(13, bold=False)
     font_label = get_system_font(12, bold=True)
-    font_bio = get_system_font(16, bold=True)
+    font_bio = get_system_font(19, bold=True)
 
     # 4. Member Name, Tag, and Join Date (With subtle text shadow for crisp contrast over banner)
     info_x = avatar_x + avatar_size + 25
@@ -212,8 +276,8 @@ async def generate_profile_card(
     draw.text((info_x, 58), info_sub, fill=(210, 225, 245, 240), font=font_small)
 
     # 5. Prominent Glass Status & Bio Box (الحالة)
-    bio_box_x1, bio_box_y1 = info_x, 82
-    bio_box_x2, bio_box_y2 = card_w - 35, 142
+    bio_box_x1, bio_box_y1 = info_x, 78
+    bio_box_x2, bio_box_y2 = card_w - 35, 146
     
     # Glassy background for bio (transparent, no box outline)
     bio_overlay = Image.new("RGBA", (card_w, card_h), (0, 0, 0, 0))
@@ -221,7 +285,7 @@ async def generate_profile_card(
     draw_bio_overlay.rounded_rectangle(
         [(bio_box_x1, bio_box_y1), (bio_box_x2, bio_box_y2)],
         radius=10,
-        fill=(14, 18, 32, 35),
+        fill=(14, 18, 32, 45),
         outline=None
     )
     card = Image.alpha_composite(card, bio_overlay)
@@ -245,11 +309,16 @@ async def generate_profile_card(
     p_tag_text = f"• {p_text}"
     draw.text((bio_box_x2 - 110, bio_box_y1 + 8), p_tag_text, fill=p_color, font=font_small)
 
-    # Bio Text
-    raw_bio = (bio[:60] + "...") if len(bio) > 60 else (bio if bio and bio.strip() else "لا توجد حالة مخصصة بعد")
+    # Bio Text with custom color and strong dark drop-shadow for supreme clarity
+    raw_bio = (bio[:65] + "...") if len(bio) > 65 else (bio if bio and bio.strip() else "لا توجد حالة مخصصة بعد")
     display_bio = process_bidi_text(raw_bio)
-    draw.text((bio_box_x1 + 13, bio_box_y1 + 29), display_bio, fill=(0, 0, 0, 180), font=font_bio)
-    draw.text((bio_box_x1 + 12, bio_box_y1 + 28), display_bio, fill=(245, 250, 255, 255), font=font_bio)
+    status_color_rgba = parse_color_to_rgba(bio_color, default_rgba=(245, 250, 255, 255))
+    
+    # High-contrast multi-point shadow
+    for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1), (-1, -1), (1, 1), (-1, 1), (1, -1), (2, 2)]:
+        draw.text((bio_box_x1 + 12 + dx, bio_box_y1 + 30 + dy), display_bio, fill=(0, 0, 0, 230), font=font_bio)
+    # Foreground colored status text
+    draw.text((bio_box_x1 + 12, bio_box_y1 + 30), display_bio, fill=status_color_rgba, font=font_bio)
 
     # 6. Stats Cards Row (Level & Rank, Aura Balance, XP Progress) with Glassmorphism
     stat_y1, stat_y2 = 158, 228

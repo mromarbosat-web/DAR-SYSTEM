@@ -10,7 +10,7 @@ from bot.database.models.economy import ShopProduct, UserInventory
 from bot.utils.embeds import EmbedBuilder
 from bot.database.repositories.profile_repository import calculate_level_info, generate_xp_bar
 
-class ChangeBioModal(ui.Modal, title="✏️ تعديل الحالة الشخصية (2,000 أروا)"):
+class ChangeBioModal(ui.Modal, title="✏️ تعديل الحالة ولون النص (2,000 أروا)"):
     new_bio = ui.TextInput(
         label="اكتب حالتك الجديدة (Custom Status)",
         style=discord.TextStyle.paragraph,
@@ -18,6 +18,14 @@ class ChangeBioModal(ui.Modal, title="✏️ تعديل الحالة الشخص�
         required=True,
         max_length=200,
         min_length=2
+    )
+
+    bio_color = ui.TextInput(
+        label="لون نص الحالة (Color: Hex كود أو اسم اللون)",
+        style=discord.TextStyle.short,
+        placeholder="مثال: #00E5FF أو gold, cyan, purple, red, green, yellow, white",
+        required=False,
+        max_length=30
     )
 
     def __init__(self, target_member: discord.Member):
@@ -28,9 +36,9 @@ class ChangeBioModal(ui.Modal, title="✏️ تعديل الحالة الشخص�
         await interaction.response.defer(ephemeral=True)
         async with AsyncSessionLocal() as session:
             service = ProfileService(session)
-            success, msg = await service.set_bio(interaction.user.id, self.new_bio.value)
+            color_val = self.bio_color.value.strip() if self.bio_color.value else None
+            success, msg = await service.set_bio(interaction.user.id, self.new_bio.value, bio_color=color_val)
             if success:
-                new_embed = await service.build_profile_embed(self.target_member)
                 await interaction.followup.send(embed=EmbedBuilder.success("تم التحديث", msg), ephemeral=True)
             else:
                 await interaction.followup.send(embed=EmbedBuilder.error("فشل التحديث", msg), ephemeral=True)
@@ -231,18 +239,50 @@ class ProfileCog(commands.Cog):
         await self.banners_command.callback(self, interaction)
 
     @app_commands.command(name="setbio", description="تغيير وتخصيص حالتك في الملف الشخصي مقابل 2,000 أروا")
-    @app_commands.describe(bio="الحالة الجديدة المراد وضعها (الحد الأقصى 200 حرف)")
-    async def set_bio_command(self, interaction: discord.Interaction, bio: str):
+    @app_commands.describe(
+        bio="الحالة الجديدة المراد وضعها (الحد الأقصى 200 حرف)",
+        color="لون نص الحالة اختياري (مثال: #00E5FF أو gold, cyan, purple, red, green, yellow, white)"
+    )
+    async def set_bio_command(self, interaction: discord.Interaction, bio: str, color: Optional[str] = None):
         await interaction.response.defer(ephemeral=True)
 
         async with AsyncSessionLocal() as session:
             service = ProfileService(session)
-            success, msg = await service.set_bio(interaction.user.id, bio)
+            success, msg = await service.set_bio(interaction.user.id, bio, bio_color=color)
             if success:
                 embed = EmbedBuilder.success("تم تحديث الحالة", msg)
             else:
                 embed = EmbedBuilder.error("فشل التحديث", msg)
             await interaction.followup.send(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="حالة", description="تغيير وتخصيص حالتك في الملف الشخصي مقابل 2,000 أروا")
+    @app_commands.describe(
+        bio="الحالة الجديدة المراد وضعها",
+        color="لون نص الحالة (اختياري: #HEX أو اسم اللون)"
+    )
+    async def arabic_set_bio_command(self, interaction: discord.Interaction, bio: str, color: Optional[str] = None):
+        await self.set_bio_command.callback(self, interaction, bio, color)
+
+    @app_commands.command(name="setbiocolor", description="تغيير لون نص حالتك في البروفايل")
+    @app_commands.describe(
+        color="كود اللون Hex (مثل #FFD700 أو #00E5FF) أو اسم اللون (gold, cyan, purple, red, green, yellow, white)"
+    )
+    async def set_bio_color_command(self, interaction: discord.Interaction, color: str):
+        await interaction.response.defer(ephemeral=True)
+
+        async with AsyncSessionLocal() as session:
+            service = ProfileService(session)
+            success, msg = await service.set_bio_color(interaction.user.id, color)
+            if success:
+                embed = EmbedBuilder.success("🎨 تم تغيير لون الحالة", f"تم تغيير لون نص الحالة بنجاح إلى: `{color}`")
+            else:
+                embed = EmbedBuilder.error("فشل التغيير", msg)
+            await interaction.followup.send(embed=embed, ephemeral=True)
+
+    @app_commands.command(name="لون_الحالة", description="تغيير لون نص حالتك في البروفايل")
+    @app_commands.describe(color="كود اللون Hex أو اسم اللون")
+    async def arabic_set_bio_color_command(self, interaction: discord.Interaction, color: str):
+        await self.set_bio_color_command.callback(self, interaction, color)
 
     @app_commands.command(name="setbanner", description="تجهيز بانر لملفك الشخصي من حقيبتك")
     @app_commands.describe(product_id="معرف البانر (Product ID)")
