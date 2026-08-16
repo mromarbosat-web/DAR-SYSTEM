@@ -50,6 +50,24 @@ def draw_hexagon_badge(
     ]
     draw.polygon(points, fill=fill, outline=outline, width=width)
 
+def format_activity_score(activity_type: str, score: int) -> str:
+    """Formats raw activity score into a readable string (e.g. messages or voice duration)."""
+    if activity_type == "text":
+        return f"{score:,} رسالة"
+    else:
+        # Voice duration in seconds -> hours, minutes, seconds
+        hours = score // 3600
+        minutes = (score % 3600) // 60
+        seconds = score % 60
+        parts = []
+        if hours > 0:
+            parts.append(f"{hours} س")
+        if minutes > 0:
+            parts.append(f"{minutes} د")
+        if seconds > 0 or not parts:
+            parts.append(f"{seconds} ث")
+        return " ".join(parts)
+
 async def generate_leaderboard_card(
     guild: discord.Guild,
     activity_type: str,  # "text" or "voice"
