@@ -17,6 +17,22 @@ except ImportError:
 
 from bot.utils.card_generator import get_latin_font, fetch_image, make_circle_avatar
 
+def format_activity_score(activity_type: str, score: int) -> str:
+    """
+    Formats a raw activity score into a human-readable string.
+    - "text" activity is displayed as a message count (e.g. "1,234 msgs").
+    - "voice" activity is stored in seconds and displayed as hours/minutes (e.g. "2h 15m").
+    """
+    if activity_type == "voice":
+        score = int(score or 0)
+        hours, remainder = divmod(score, 3600)
+        minutes, _ = divmod(remainder, 60)
+        if hours > 0:
+            return f"{hours}h {minutes}m"
+        return f"{minutes}m"
+
+    return f"{int(score or 0):,} msgs"
+
 def draw_rounded_glass_box(
     draw: Any,
     bounds: Tuple[int, int, int, int],
