@@ -1,7 +1,7 @@
 import io
 import os
 import logging
-from typing import Optional
+from typing import Optional, Tuple, Any, List, Dict, Union
 from datetime import datetime
 import aiohttp
 import discord
@@ -12,12 +12,13 @@ try:
     from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
     PIL_AVAILABLE = True
 except ImportError:
+    Image = ImageDraw = ImageFont = ImageFilter = ImageOps = None  # type: ignore
     PIL_AVAILABLE = False
     logger.warning("Pillow is not installed. Profile Card will fall back to embed display.")
 
 from bot.utils.arabic_text import process_bidi_text
 
-def get_system_font(size: int, bold: bool = False, italic: bool = False) -> Optional[ImageFont.ImageFont]:
+def get_system_font(size: int, bold: bool = False, italic: bool = False) -> Optional[Any]:
     """Safely retrieves available system TTF font with complete Unicode & Arabic support."""
     if not PIL_AVAILABLE:
         return None
@@ -54,7 +55,7 @@ def get_system_font(size: int, bold: bool = False, italic: bool = False) -> Opti
     except Exception:
         return None
 
-def get_latin_font(size: int, bold: bool = False, italic: bool = False) -> Optional[ImageFont.ImageFont]:
+def get_latin_font(size: int, bold: bool = False, italic: bool = False) -> Optional[Any]:
     """Safely retrieves robust Latin/English TTF font (DejaVuSans / LiberationSans) for error-free rendering of numbers, usernames, and English text."""
     if not PIL_AVAILABLE:
         return None
@@ -86,7 +87,7 @@ async def fetch_image(url: str) -> Optional[bytes]:
         logger.debug(f"Failed to fetch image from {url}: {e}")
     return None
 
-def make_circle_avatar(avatar_img: Image.Image, size: int) -> Image.Image:
+def make_circle_avatar(avatar_img: Any, size: int) -> Any:
     """Crops an image into a circle with anti-aliasing."""
     avatar_img = avatar_img.resize((size, size), Image.Resampling.LANCZOS).convert("RGBA")
     mask = Image.new("L", (size * 4, size * 4), 0)

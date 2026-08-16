@@ -11,13 +11,14 @@ try:
     from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
     PIL_AVAILABLE = True
 except ImportError:
+    Image = ImageDraw = ImageFont = ImageFilter = ImageOps = None  # type: ignore
     PIL_AVAILABLE = False
     logger.warning("Pillow is not installed. Leaderboard will fall back to embed display.")
 
 from bot.utils.card_generator import get_latin_font, fetch_image, make_circle_avatar
 
 def draw_rounded_glass_box(
-    draw: ImageDraw.ImageDraw,
+    draw: Any,
     bounds: Tuple[int, int, int, int],
     radius: int,
     fill: Tuple[int, int, int, int],
@@ -28,7 +29,7 @@ def draw_rounded_glass_box(
     draw.rounded_rectangle(bounds, radius=radius, fill=fill, outline=outline, width=width)
 
 def draw_hexagon_badge(
-    draw: ImageDraw.ImageDraw,
+    draw: Any,
     center: Tuple[int, int],
     size: int,
     fill: Tuple[int, int, int, int],
